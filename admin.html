@@ -33,6 +33,33 @@
 
 <!-- Retour à l'accueil -->
 <button onclick="window.location.href='index.html'">⬅ Retour à l'accueil</button>
+<script type="module">
+  import { supabase } from './supabaseClient.js';
 
+  async function getAnnouncements() {
+    const { data, error } = await supabase.from('announcements').select('*').order('created_at', { ascending: false });
+    if(error) return console.error(error);
+    const container = document.getElementById('announcementsContainer');
+    container.innerHTML = '';
+    data.forEach(a => {
+      const div = document.createElement('div');
+      div.innerHTML = `<b>${a.title || 'Titre'}</b>: ${a.text || ''}`;
+      const btnEdit = document.createElement('button');
+      btnEdit.innerText = 'Modifier';
+      btnEdit.onclick = () => alert("Modifier à implémenter");
+      const btnDelete = document.createElement('button');
+      btnDelete.innerText = 'Supprimer';
+      btnDelete.onclick = async () => {
+        await supabase.from('announcements').delete().eq('id', a.id);
+        getAnnouncements();
+      }
+      div.appendChild(btnEdit);
+      div.appendChild(btnDelete);
+      container.appendChild(div);
+    });
+  }
+
+  getAnnouncements();
+</script>
 </body>
 </html>
