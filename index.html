@@ -48,245 +48,145 @@ header button:hover{background:#2ecc71;}
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// --- CONNEXION SUPABASE ---
-const supabaseUrl = 'https://nqqlsntgmorujffrntih.supabase.co';
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydGpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY';
-const supabase = createClient(supabaseUrl, supabaseKey);
+const SUPABASE_URL = 'https://nqqlsntgmorujffrntih.supabase.co';
+const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydGpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY';
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-// --- UTILISATEUR ANONYME ---
-let currentUser = 'User'+Math.floor(Math.random()*1000);
+let currentUser = "User" + Math.floor(Math.random()*1000);
+let currentFile = null;
 
-// --- CHARGEMENT DES POSTS EXISTANTS ---
-let postsList = [];
-
-async function loadPosts() {
-  const { data, error } = await supabase.from('posts').select('*').order('created_at', {ascending:true});
-  if(error) { console.error(error); return; }
-  postsList = data;
-  renderPosts();
-}
-
-// --- MISE À JOUR DE L'HEURE ---
+// --- Heure ---
 function updateTime() {
   document.getElementById('timeInfo').innerText = `⏰ ${new Date().toLocaleTimeString()}`;
 }
 setInterval(updateTime,1000);
 updateTime();
 
-// --- AJOUT MEDIA ---
-let currentFile = null;
+// --- Ajout média ---
 document.getElementById('btnAddMedia').onclick = ()=> document.getElementById('mediaInput').click();
-document.getElementById('mediaInput').onchange = async (e)=>{
+document.getElementById('mediaInput').onchange = (e)=>{
   const file = e.target.files[0];
   if(!file) return;
   currentFile = file;
 }
 
-// --- PUBLIER UN POST ---
+// --- Publier post ---
 document.getElementById('btnPublish').onclick = async ()=>{
   const text = document.getElementById('newPostText').value.trim();
-  if(!text && !currentFile) return alert('Écris quelque chose ou ajoute un fichier !');
-
+  if(!text && !currentFile) return alert("Écris quelque chose ou ajoute un fichier !");
+  
   let mediaUrl = null;
   if(currentFile){
     const fileExt = currentFile.name.split('.').pop();
-    const fileName = `${Math.random()}.${fileExt}`;
+    const fileName = `${Date.now()}.${fileExt}`;
     const { data, error } = await supabase.storage.from('media').upload(fileName, currentFile);
-    if(error) { console.error(error); alert('Erreur upload fichier'); return; }
+    if(error){ console.error(error); alert("Erreur upload média"); return; }
     mediaUrl = supabase.storage.from('media').getPublicUrl(fileName).publicURL;
   }
 
-  const { data, error } = await supabase.from('posts').insert([
-    { user_id: currentUser, text: text, media_url: mediaUrl }
-  ]);
-  if(error) { console.error(error); return; }
-  document.getElementById('newPostText').value='';
-  currentFile=null;
-  renderPosts();
+  const { data, error } = await supabase.from('posts').insert([{ user: currentUser, text, media: mediaUrl, likes:0, likedUsers:[], comments:[] }]);
+  if(error){ console.error(error); alert("Erreur création post"); return; }
+  
+  document.getElementById('newPostText').value = '';
+  currentFile = null;
+  document.getElementById('filePreview').innerHTML = '';
+  fetchPosts();
 }
 
-// --- AFFICHAGE DES POSTS ---
-function renderPosts(){
+// --- Récupérer posts ---
+async function fetchPosts(){
+  const { data, error } = await supabase.from('posts').select('*').order('created_at', {ascending:true});
+  if(error){ console.error(error); return; }
+  renderPosts(data);
+}
+
+// --- Affichage posts ---
+function renderPosts(posts){
   const container = document.getElementById('postsContainer');
-  container.innerHTML='';
-  postsList.forEach((post,i)=>{
+  container.innerHTML = '';
+  posts.forEach(post=>{
     const card = document.createElement('div');
     card.className='cardFlyer';
+
     let mediaHTML='';
-    if(post.media_url){
-      if(post.media_url.match(/\.(jpeg|jpg|png|gif)$/i)) mediaHTML = `<img src="${post.media_url}"><br>`;
-      else mediaHTML = `<video src="${post.media_url}" controls></video><br>`;
+    if(post.media){
+      if(post.media.match(/\.(jpeg|jpg|png|gif)$/i)) mediaHTML = `<img src="${post.media}"><br>`;
+      else mediaHTML = `<video src="${post.media}" controls></video><br>`;
     }
-    const userHTML = `<span class="userId" onclick="privateChat('${post.user_id}')">${post.user_id}</span>`;
-    card.innerHTML = `<div><b>${userHTML}</b>: ${post.text}<br>${mediaHTML}</div>`;
+
+    card.innerHTML=`<div><b><span class="userId" onclick="privateChat('${post.user}')">${post.user}</span></b>: ${post.text}<br>${mediaHTML}Likes: ${post.likes||0}</div>`;
 
     // Like
     const btnLike = document.createElement('button');
     btnLike.innerText='❤️ Like';
-    btnLike.onclick = () => alert('Like à implémenter avec Supabase');
+    btnLike.onclick = async ()=>{
+      if(post.likedUsers?.includes(currentUser)) return alert("Vous avez déjà liké ce post !");
+      const newLikedUsers = [...(post.likedUsers||[]), currentUser];
+      await supabase.from('posts').update({ likes:(post.likes||0)+1, likedUsers:newLikedUsers }).eq('id', post.id);
+      fetchPosts();
+    }
     card.appendChild(btnLike);
 
-    // Commenter
+    // Commentaire
     const btnComment = document.createElement('button');
     btnComment.innerText='💬 Commenter';
-    btnComment.onclick = () => alert('Commentaires à implémenter');
+    btnComment.onclick = async ()=>{
+      const textC = prompt("Votre commentaire :");
+      if(!textC) return;
+      const newComments = [...(post.comments||[]), { user: currentUser, text:textC, subcomments:[] }];
+      await supabase.from('posts').update({ comments:newComments }).eq('id', post.id);
+      fetchPosts();
+    }
     card.appendChild(btnComment);
+
+    // Supprimer post si auteur
+    if(post.user === currentUser){
+      const btnDelete = document.createElement('button');
+      btnDelete.innerText='🗑 Supprimer';
+      btnDelete.onclick = async ()=>{
+        if(confirm("Supprimer ce post ?")){
+          await supabase.from('posts').delete().eq('id', post.id);
+          fetchPosts();
+        }
+      }
+      card.appendChild(btnDelete);
+    }
+
+    // Commentaires imbriqués
+    if(post.comments?.length){
+      const commentsDiv = document.createElement('div');
+      for(const c of post.comments){
+        const cDiv = document.createElement('div');
+        cDiv.className='commentDiv';
+        cDiv.innerHTML=`<b>${c.user}</b>: ${c.text}`;
+        if(c.subcomments?.length){
+          for(const sc of c.subcomments){
+            const scDiv = document.createElement('div');
+            scDiv.className='commentDiv';
+            scDiv.innerHTML=`<b>${sc.user}</b>: ${sc.text}`;
+            cDiv.appendChild(scDiv);
+          }
+commentsDiv.appendChild(cDiv);
+      }
+      card.appendChild(commentsDiv);
+    }
 
     container.appendChild(card);
   });
 }
 
-// --- CONVERSATION PRIVÉE ---
+// --- Conversation privée ---
 function privateChat(userId){
-  alert(`Invitation à discuter en privé avec ${userId}`);
+  alert(`Discussion privée avec ${userId} (à développer)`);
 }
 
-// --- NAVIGATION ---
-function goTo(page){ window.location.href = page; }
-
-loadPosts();
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script>
-// Initialisation Supabase
-const SUPABASE_URL = "https://nqqlsntgmorujffrntih.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydGpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY";
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-// Pseudo utilisateur anonyme
-let currentUser = "User" + Math.floor(Math.random()*1000);
-
-// Récupérer les posts depuis Supabase
-async function fetchPosts(){
-    const { data, error } = await supabase
-        .from('posts')
-        .select('*')
-        .order('created_at', { ascending: false });
-    if(error){ console.error(error); return; }
-    renderPosts(data);
+// --- Navigation ---
+function goTo(page){
+  window.location.href = page;
 }
 
-// Publier un post
-document.getElementById('btnPublish').onclick = async () => {
-    const text = document.getElementById('newPostText').value.trim();
-    if(!text && !currentFile) return alert("Écris quelque chose ou ajoute un fichier !");
-    
-    let media_url = null;
-    if(currentFile){
-        const fileExt = currentFile.name.split('.').pop();
-        const fileName = `${Date.now()}.${fileExt}`;
-        const { data, error } = await supabase.storage
-            .from('media')
-            .upload(fileName, currentFile);
-        if(error){ console.error(error); alert("Erreur upload média"); return; }
-        media_url = supabase.storage.from('media').getPublicUrl(fileName).data.publicUrl;
-    }
-
-    const { data, error } = await supabase
-        .from('posts')
-        .insert([{ user: currentUser, text, media: media_url }]);
-    if(error){ console.error(error); alert("Erreur création post"); return; }
-
-    document.getElementById('newPostText').value = '';
-    currentFile = null;
-    document.getElementById('filePreview').innerHTML = '';
-    fetchPosts();
-}
-
-// Prévisualisation média
-document.getElementById('btnAddMedia').onclick = ()=> document.getElementById('mediaInput').click();
-document.getElementById('mediaInput').onchange = (e)=>{
-    const file = e.target.files[0];
-    if(!file) return;
-    currentFile = file;
-    const url = URL.createObjectURL(file);
-    const previewDiv = document.getElementById('filePreview');
-    previewDiv.innerHTML = file.type.startsWith('image/') ? `<img src="${url}">` : `<video src="${url}" controls></video>`;
-}
-
-// Afficher les posts avec likes et commentaires
-async function renderPosts(posts){
-    const container = document.getElementById('postsContainer');
-    container.innerHTML = '';
-    for(const post of posts){
-        const card = document.createElement('div');
-        card.className = 'cardFlyer';
-        let mediaHTML = post.media ? (post.media.includes('.mp4') ? `<video src="${post.media}" controls></video>` : `<img src="${post.media}">`) : '';
-        card.innerHTML = `<div><b>${post.user}</b>: ${post.text}<br>${mediaHTML}<br>Likes: <span id="likes${post.id}">${post.likes||0}</span></div>`;
-        
-        // Like
-        const btnLike = document.createElement('button');
-        btnLike.innerText='❤️ Like';
-        btnLike.onclick=async ()=>{
-            if(post.likedUsers?.includes(currentUser)) return alert("Vous avez déjà liké ce post !");
-            const { data, error } = await supabase.from('posts').update({
-                likes: (post.likes||0)+1,
-                likedUsers: [...(post.likedUsers||[]), currentUser]
-            }).eq('id', post.id);
-            if(error) return console.error(error);
-            fetchPosts();
-        }
-        card.appendChild(btnLike);
-
-        // Commentaire
-        const btnComment = document.createElement('button');
-        btnComment.innerText='💬 Commenter';
-        btnComment.onclick=async ()=>{
-            const textC = prompt("Votre commentaire :");
-            if(!textC) return;
-            const newComments = [...(post.comments||[]), { user: currentUser, text:textC, subcomments:[] }];
-            await supabase.from('posts').update({ comments: newComments }).eq('id', post.id);
-            fetchPosts();
-        }
-        card.appendChild(btnComment);
-
-        // Supprimer post si auteur
-        if(post.user === currentUser){
-            const btnDelete = document.createElement('button');
-            btnDelete.innerText='🗑 Supprimer';
-            btnDelete.onclick=async ()=>{
-                if(confirm("Supprimer ce post ?")){
-                    await supabase.from('posts').delete().eq('id', post.id);
-                    fetchPosts();
-                }
-            }
-            card.appendChild(btnDelete);
-        }
-
-        // Commentaires imbriqués
-        if(post.comments?.length){
-            const commentsDiv = document.createElement('div');
-            for(const c of post.comments){
-                const cDiv = document.createElement('div');
-                cDiv.className='commentDiv';
-                cDiv.innerHTML=`<b>${c.user}</b>: ${c.text}`;
-                if(c.subcomments?.length){
-                    for(const sc of c.subcomments){
-                        const scDiv = document.createElement('div');
-                        scDiv.className='commentDiv';
-                        scDiv.innerHTML=`<b>${sc.user}</b>: ${sc.text}`;
-                        cDiv.appendChild(scDiv);
-                    }
-                }
-                commentsDiv.appendChild(cDiv);
-            }
-            card.appendChild(commentsDiv);
-        }
-
-        container.appendChild(card);
-    }
-}
-
-// Conversation privée
-function privateChat(userId){
-    alert(`Discussion privée avec ${userId} (à développer)`);
-}
-
-// Navigation
-function goTo(page){ window.location.href = page; }
-
-// Initial fetch
+// --- Initialisation ---
 fetchPosts();
-</script>
 </script>
 </body>
 </html>
