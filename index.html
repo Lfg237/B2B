@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Accueil B2B - Test</title>
+<style>
+body {margin:0;font-family:Arial,sans-serif;background:#f0f2f5;}
+header{position:fixed;top:0;width:100%;background:#4a76a8;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;z-index:1000;font-size:16px;}
+header .center{font-weight:bold;font-size:18px;}
+header button{padding:6px 10px;border:none;border-radius:12px;margin:0 3px;background:#27ae60;color:white;cursor:pointer;font-size:14px;}
+header button:hover{background:#2ecc71;}
+.container{padding:10px;margin-top:60px;margin-bottom:100px;}
+.cardFlyer{background:white;margin:10px 0;padding:10px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.2);}
+.cardFlyer img, .cardFlyer video{max-width:100%;border-radius:8px;margin-top:5px;cursor:pointer;}
+.commentDiv{margin-left:10px;border-left:2px solid #ccc;padding-left:5px;margin-top:5px;}
+#publishArea{position:fixed;bottom:0;left:0;width:100%;background:#fff;padding:10px;display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);z-index:1000;}
+#publishArea input[type=text]{flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;}
+#publishArea button{padding:6px 10px;border-radius:6px;border:none;background:#27ae60;color:white;cursor:pointer;}
+#publishArea button:hover{background:#2ecc71;}
+#filePreview img,#filePreview video{max-width:80px;max-height:80px;border-radius:6px;margin-left:5px;}
+.userId{color:#2980b9;cursor:pointer;font-weight:bold;}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <button onclick="goTo('groupes.html')">📂 Groupes</button>
+    <button onclick="goTo('sondages.html')">📊 Sondages</button>
+    <button onclick="goTo('lookme.html')">📍 LookMe</button>
+    <button onclick="goTo('admin.html')">⚙️ Admin</button>
+  </div>
+  <div class="center">B2B</div>
+  <div id="timeInfo">⏰ --:--</div>
+</header>
+
+<div class="container" id="postsContainer"></div>
+
+<div id="publishArea">
+  <input type="text" id="newPostText" placeholder="Écrire un post...">
+  <button id="btnAddMedia">📎</button>
+  <button id="btnPublish">📤 Publier</button>
+</div>
+<div id="filePreview" style="display:flex;align-items:center;"></div>
+<input type="file" id="mediaInput" style="display:none;" accept="image/*,video/*">
+
+<script>
+// Pseudo utilisateur
+let currentUser = "User" + Math.floor(Math.random()*1000);
+
+// Posts simulés
+let postsList = [
+  {user:"User101", text:"Bienvenue sur B2B !", media:null, mediaType:null, likes:2, likedUsers:["User101"], comments:[]},
+  {user:"User202", text:"Ceci est un post de test.", media:null, mediaType:null, likes:1, likedUsers:["User202"], comments:[
+    {user:"User303", text:"Commentaire test", subcomments:[{user:"User101", text:"Réponse"}]}
+  ]}
+];
+
+let currentFile = null;
+
+// mise à jour de l'heure
+function updateTime() {
+  document.getElementById('timeInfo').innerText = `⏰ ${new Date().toLocaleTimeString()}`;
+}
+setInterval(updateTime,1000);
+updateTime();
+
+// ajout média
+document.getElementById('btnAddMedia').onclick = ()=> document.getElementById('mediaInput').click();
+document.getElementById('mediaInput').onchange = (e)=>{
+  const file = e.target.files[0];
+  if(!file) return;
+  currentFile = file;
+  const url = URL.createObjectURL(file);
+  const previewDiv = document.getElementById('filePreview');
+  previewDiv.innerHTML = '';
+  if(file.type.startsWith('image/')) previewDiv.innerHTML = `<img src="${url}">`;
+  else previewDiv.innerHTML = `<video src="${url}" controls></video>`;
+}
+
+// publier un post
+document.getElementById('btnPublish').onclick = () => {
+  const text = document.getElementById('newPostText').value.trim();
+  if(!text && !currentFile) return alert("Écris quelque chose ou ajoute un fichier !");
+  const post = {
+    user: currentUser,
+    text: text,
+    media: currentFile ? URL.createObjectURL(currentFile) : null,
+    mediaType: currentFile ? (currentFile.type.startsWith('image/')?'image':'video') : null,
+    likes:0,
+    likedUsers:[],
+    comments:[]
+  };
+  postsList.push(post);
+  document.getElementById('newPostText').value='';
+  currentFile=null;
+  document.getElementById('filePreview').innerHTML='';
+  renderPosts();
+}
+
+// afficher les posts
+function renderPosts(){
+  const container = document.getElementById('postsContainer');
+  container.innerHTML='';
+  postsList.forEach((post,i)=>{
+    const card = document.createElement('div');
+    card.className='cardFlyer';
+    let mediaHTML='';
+    if(post.media){
+      mediaHTML = post.mediaType==='image'? `<img src="${post.media}"><br>` : `<video src="${post.media}" controls></video><br>`;
+    }
+    const userHTML = `<span class="userId" onclick="privateChat('${post.user}')">${post.user}</span>`;
+    card.innerHTML=`<div><b>${userHTML}</b>: ${post.text}<br>${mediaHTML}<span id="likes${i}">${post.likes} ❤️</span></div>`;
+
+    // Like
+    const btnLike = document.createElement('button');
+    btnLike.innerText='❤️ Like';
+    btnLike.onclick = () => {
+      if(!post.likedUsers.includes(currentUser)){
+        post.likes++;
+        post.likedUsers.push(currentUser);
+        document.getElementById(`likes${i}`).innerText = `${post.likes} ❤️`;
+      } else alert("Vous avez déjà liké ce post !");
+    }
+    card.appendChild(btnLike);
+
+    // Commenter
+    const btnComment = document.createElement('button');
+    btnComment.innerText='💬 Commenter';
+    btnComment.onclick=()=>{
+      const textC=prompt("Votre commentaire :");
+      if(!textC) return;
+      post.comments.push({user:currentUser,text:textC,subcomments:[]});
+      renderPosts();
+    }
+    card.appendChild(btnComment);
+
+    // Commentaires imbriqués
+    if(post.comments.length>0){
+      const commentsDiv=document.createElement('div');
+      post.comments.forEach(c=>{
+        const cDiv=document.createElement('div');
+        cDiv.className='commentDiv';
+        const commentUser=`<span class="userId" onclick="privateChat('${c.user}')">${c.user}</span>`;
+        cDiv.innerHTML=`<b>${commentUser}:</b> ${c.text}`;
+        // sous-commentaires
+        if(c.subcomments.length>0){
+          c.subcomments.forEach(sc=>{
+            const scDiv=document.createElement('div');
+            scDiv.className='commentDiv';
+            const subUser=`<span class="userId" onclick="privateChat('${sc.user}')">${sc.user}</span>`;
+            scDiv.innerHTML=`<b>${subUser}:</b> ${sc.text}`;
+            cDiv.appendChild(scDiv);
+          });
+        }
+        commentsDiv.appendChild(cDiv);
+      });
+      card.appendChild(commentsDiv);
+    }
+
+    container.appendChild(card);
+  });
+}
+renderPosts();
+
+// conversation privée
+function privateChat(userId){
+  alert(`Invitation à discuter en privé avec ${userId} (à développer)`);
+}
+
+// navigation
+function goTo(page){ window.location.href=page; }
+
+</script>
+</body>
+  </html>
