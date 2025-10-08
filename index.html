@@ -1,22 +1,24 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>Accueil B2B</title>
 <style>
 body {margin:0;font-family:Arial,sans-serif;background:#f0f2f5;}
-header{position:fixed;top:0;width:100%;background:#4a76a8;color:white;padding:10px;
-display:flex;justify-content:space-between;align-items:center;z-index:1000;font-size:16px;}
-header .center{font-weight:bold;font-size:18px;}
-header button{padding:6px 10px;border:none;border-radius:12px;margin:0 3px;background:#27ae60;color:white;cursor:pointer;font-size:14px;}
-header button:hover{background:#2ecc71;}
-.container{padding:10px;margin-top:60px;margin-bottom:100px;}
-.cardFlyer{background:white;margin:10px 0;padding:10px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.2);}
+header {display:flex; flex-direction:column; align-items:center; padding:15px 10px; background:#4a76a8; color:white; z-index:1000;}
+header .icon-group {display:flex; justify-content:center; gap:20px; margin-bottom:8px;}
+header .icon-group div {text-align:center; cursor:pointer;}
+header .icon-group div span {font-size:20px;}
+header .center {font-weight:bold;font-size:22px; margin-bottom:8px;}
+#searchBar {width:100%; display:flex; justify-content:center; margin-bottom:5px;}
+#searchBar input[type=text] {width:60%; padding:6px; border-radius:6px; border:1px solid #ccc;}
+#searchBar button {padding:6px 10px; margin-left:5px; border:none; border-radius:6px; background:#27ae60; color:white; cursor:pointer;}
+.container {padding:10px; margin-top:10px; margin-bottom:100px;}
+.cardFlyer {background:white; margin:10px 0; padding:10px; border-radius:12px; box-shadow:0 3px 8px rgba(0,0,0,0.2);}
 .cardFlyer img,.cardFlyer video{max-width:100%;border-radius:8px;margin-top:5px;cursor:pointer;}
 .commentDiv{margin-left:10px;border-left:2px solid #ccc;padding-left:5px;margin-top:5px;}
-#publishArea{position:fixed;bottom:0;left:0;width:100%;background:#fff;padding:10px;
-display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);z-index:1000;}
+#publishArea{position:fixed;bottom:0;left:0;width:100%;background:#fff;padding:10px;display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);z-index:1000;}
 #publishArea input[type=text]{flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;}
 #publishArea button{padding:6px 10px;border-radius:6px;border:none;background:#27ae60;color:white;cursor:pointer;}
 #publishArea button:hover{background:#2ecc71;}
@@ -29,13 +31,17 @@ display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);z-
 <body>
 
 <header>
-  <div>
-    <button onclick="goTo('groupes.html')">📂 Groupes</button>
-    <button onclick="goTo('sondages.html')">📊 Sondages</button>
-    <button onclick="goTo('lookme.html')">📍 LookMe</button>
-    <button onclick="goTo('admin.html')">⚙️ Admin</button>
+  <div class="icon-group">
+    <div onclick="goTo('groupes.html')"><span>👥</span><br>Groupes</div>
+    <div onclick="goTo('sondages.html')"><span>⚖️</span><br>Sondages</div>
+    <div onclick="goTo('lookme.html')"><span>👁️</span><br>LookMe</div>
+    <div onclick="goTo('admin.html')"><span>⚙️</span><br>Admin</div>
   </div>
   <div class="center">B2B</div>
+  <div id="searchBar">
+    <input type="text" id="searchInput" placeholder="Rechercher...">
+    <button onclick="doSearch()">🔍</button>
+  </div>
   <div id="timeInfo">⏰ --:--</div>
 </header>
 
@@ -52,7 +58,6 @@ display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);z-
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-// --- Configuration Supabase ---
 const supabaseUrl = 'https://nqqlsntgmorujffrntih.supabase.co'
 const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydWpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY'
 const supabase = createClient(supabaseUrl, supabaseKey)
@@ -60,21 +65,20 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 let currentUser = 'User-' + crypto.randomUUID().slice(0,8)
 let currentFile = null
 
-// --- Horloge ---
+// Horloge
 function updateTime(){ document.getElementById('timeInfo').innerText=`⏰ ${new Date().toLocaleTimeString()}` }
 setInterval(updateTime,1000); updateTime()
 
-// --- Navigation ---
 function goTo(page){ window.location.href = page }
 
 // --- Chargement des posts ---
 async function loadPosts(){
-  const { data, error } = await supabase.from('posts').select('*').order('created_at',{ascending:false})
+  const { data, error } = await supabase.from('posts').select('*').order('created_at',{ascending:true})
   if(error){ console.error(error); return }
   renderPosts(data)
 }
 
-// --- Suppression automatique après 72h ---
+// --- Suppression automatique 72h ---
 async function autoDeleteOldPosts(){
   const now = new Date()
   const { data } = await supabase.from('posts').select('*')
@@ -85,14 +89,14 @@ async function autoDeleteOldPosts(){
   }
 }
 
-// --- Rendu des posts ---
+// --- Render posts ---
 function renderPosts(posts){
-  const container=document.getElementById('postsContainer')
-  container.innerHTML=''
+  const container = document.getElementById('postsContainer')
+  container.innerHTML = ''
   posts.forEach(p=>{
-    const card=document.createElement('div')
+    const card = document.createElement('div')
     card.className='cardFlyer'
-    let media=''
+    let media = ''
     if(p.media_url){
       if(p.media_url.match(/\.mp4$/i)) media=`<video src="${p.media_url}" controls></video>`
       else media=`<img src="${p.media_url}">`
@@ -107,38 +111,46 @@ function renderPosts(posts){
   })
 }
 
-// --- Ajout média ---
-document.getElementById('btnAddMedia').onclick=()=>document.getElementById('mediaInput').click()
-document.getElementById('mediaInput').onchange=(e)=>{
-  const file=e.target.files[0]; if(!file)return;
-  currentFile=file
-  const preview=document.getElementById('filePreview')
-  preview.innerHTML=''
-  const url=URL.createObjectURL(file)
-  if(file.type.startsWith('image/')) preview.innerHTML=`<img src="${url}" style="max-width:100px;">`
-  else preview.innerHTML=`<video src="${url}" controls style="max-width:100px;"></video>`
+// --- Media ---
+document.getElementById('btnAddMedia').onclick = ()=> document.getElementById('mediaInput').click()
+document.getElementById('mediaInput').onchange = (e)=>{
+  currentFile = e.target.files[0]; if(!currentFile) return;
+  const url = URL.createObjectURL(currentFile)
+  const preview = document.getElementById('filePreview')
+  preview.innerHTML = currentFile.type.startsWith('image/') 
+    ? `<img src="${url}" style="max-width:100px;">`
+    : `<video src="${url}" controls style="max-width:100px;"></video>`
 }
 
 // --- Publier ---
-document.getElementById('btnPublish').onclick=async()=>{
-  const text=document.getElementById('newPostText').value.trim()
+document.getElementById('btnPublish').onclick = async ()=>{
+  const text = document.getElementById('newPostText').value.trim()
   if(!text && !currentFile) return alert('Écris quelque chose ou ajoute un fichier !')
 
-  let mediaUrl=null
+  let mediaUrl = null
   if(currentFile){
-    const name=`${Date.now()}_${currentFile.name}`
-    const { error:uploadError }=await supabase.storage.from('media').upload(name,currentFile)
-    if(uploadError){ console.error(uploadError);alert('Erreur upload média');return }
-    const { data:urlData }=supabase.storage.from('media').getPublicUrl(name)
-    mediaUrl=urlData.publicUrl
+    const name = `${Date.now()}_${currentFile.name}`
+    const { error:uploadError } = await supabase.storage.from('media').upload(name,currentFile)
+    if(uploadError){ console.error(uploadError); alert('Erreur upload média'); return }
+    const { data:urlData } = supabase.storage.from('media').getPublicUrl(name)
+    mediaUrl = urlData.publicUrl
   }
 
-  const { error:insertError }=await supabase.from('posts').insert([{user_id:currentUser,text,media_url:mediaUrl,likes:0}])
-  if(insertError){ console.error(insertError);alert('Erreur création post');return }
+  const { error:insertError } = await supabase.from('posts').insert([{user_id:currentUser,text,media_url:mediaUrl,likes:0}])
+  if(insertError){ console.error(insertError); alert('Erreur création post'); return }
 
-  document.getElementById('newPostText').value=''
-  document.getElementById('filePreview').innerHTML=''
-  currentFile=null
+  // Notification à tous les utilisateurs
+  await supabase.from('announcements').insert([{
+    created_at: new Date(),
+    type: 'post',
+    content: text,
+    title: 'Nouveau post',
+    is_read: false
+  }])
+
+  document.getElementById('newPostText').value = ''
+  document.getElementById('filePreview').innerHTML = ''
+  currentFile = null
   loadPosts()
 }
 
@@ -151,6 +163,20 @@ async function likePost(id){
 }
 
 window.likePost=likePost
+
+// --- Recherche globale ---
+function doSearch(){
+  const query = document.getElementById('searchInput').value.trim().toLowerCase()
+  if(!query) return loadPosts()
+  supabase.from('posts')
+    .select('*')
+    .or(`text.ilike.%${query}%,user_id.ilike.%${query}%`)
+    .order('created_at',{ascending:true})
+    .then(({data,error})=>{
+      if(error){ console.error(error); alert("Erreur recherche"); return }
+      renderPosts(data)
+    })
+}
 
 autoDeleteOldPosts()
 loadPosts()
