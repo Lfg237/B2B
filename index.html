@@ -6,20 +6,24 @@
 <title>Accueil B2B</title>
 <style>
 body {margin:0;font-family:Arial,sans-serif;background:#f0f2f5;}
-header{position:fixed;top:0;width:100%;background:#4a76a8;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;z-index:1000;font-size:16px;}
+header{position:fixed;top:0;width:100%;background:#4a76a8;color:white;padding:10px;
+display:flex;justify-content:space-between;align-items:center;z-index:1000;font-size:16px;}
 header .center{font-weight:bold;font-size:18px;}
 header button{padding:6px 10px;border:none;border-radius:12px;margin:0 3px;background:#27ae60;color:white;cursor:pointer;font-size:14px;}
 header button:hover{background:#2ecc71;}
 .container{padding:10px;margin-top:60px;margin-bottom:100px;}
 .cardFlyer{background:white;margin:10px 0;padding:10px;border-radius:12px;box-shadow:0 3px 8px rgba(0,0,0,0.2);}
-.cardFlyer img, .cardFlyer video{max-width:100%;border-radius:8px;margin-top:5px;cursor:pointer;}
+.cardFlyer img,.cardFlyer video{max-width:100%;border-radius:8px;margin-top:5px;cursor:pointer;}
 .commentDiv{margin-left:10px;border-left:2px solid #ccc;padding-left:5px;margin-top:5px;}
-#publishArea{position:fixed;bottom:0;left:0;width:100%;background:#fff;padding:10px;display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);z-index:1000;}
+#publishArea{position:fixed;bottom:0;left:0;width:100%;background:#fff;padding:10px;
+display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);z-index:1000;}
 #publishArea input[type=text]{flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;}
 #publishArea button{padding:6px 10px;border-radius:6px;border:none;background:#27ae60;color:white;cursor:pointer;}
 #publishArea button:hover{background:#2ecc71;}
 #filePreview img,#filePreview video{max-width:80px;max-height:80px;border-radius:6px;margin-left:5px;}
 .userId{color:#2980b9;cursor:pointer;font-weight:bold;}
+.like-btn{color:#e74c3c;cursor:pointer;}
+.like-btn:hover{color:#c0392b;}
 </style>
 </head>
 <body>
@@ -46,147 +50,110 @@ header button:hover{background:#2ecc71;}
 <input type="file" id="mediaInput" style="display:none;" accept="image/*,video/*">
 
 <script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
-const SUPABASE_URL = 'https://nqqlsntgmorujffrntih.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydGpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY';
-const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+// --- Configuration Supabase ---
+const supabaseUrl = 'https://nqqlsntgmorujffrntih.supabase.co'
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydWpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY'
+const supabase = createClient(supabaseUrl, supabaseKey)
 
-let currentUser = "User" + Math.floor(Math.random()*1000);
-let currentFile = null;
+let currentUser = 'User-' + crypto.randomUUID().slice(0,8)
+let currentFile = null
 
-// --- Heure ---
-function updateTime() {
-  document.getElementById('timeInfo').innerText = `⏰ ${new Date().toLocaleTimeString()}`;
-}
-setInterval(updateTime,1000);
-updateTime();
-
-// --- Ajout média ---
-document.getElementById('btnAddMedia').onclick = ()=> document.getElementById('mediaInput').click();
-document.getElementById('mediaInput').onchange = (e)=>{
-  const file = e.target.files[0];
-  if(!file) return;
-  currentFile = file;
-}
-
-// --- Publier post ---
-document.getElementById('btnPublish').onclick = async ()=>{
-  const text = document.getElementById('newPostText').value.trim();
-  if(!text && !currentFile) return alert("Écris quelque chose ou ajoute un fichier !");
-  
-  let mediaUrl = null;
-  if(currentFile){
-    const fileExt = currentFile.name.split('.').pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const { data, error } = await supabase.storage.from('media').upload(fileName, currentFile);
-    if(error){ console.error(error); alert("Erreur upload média"); return; }
-    mediaUrl = supabase.storage.from('media').getPublicUrl(fileName).publicURL;
-  }
-
-  const { data, error } = await supabase.from('posts').insert([{ user: currentUser, text, media: mediaUrl, likes:0, likedUsers:[], comments:[] }]);
-  if(error){ console.error(error); alert("Erreur création post"); return; }
-  
-  document.getElementById('newPostText').value = '';
-  currentFile = null;
-  document.getElementById('filePreview').innerHTML = '';
-  fetchPosts();
-}
-
-// --- Récupérer posts ---
-async function fetchPosts(){
-  const { data, error } = await supabase.from('posts').select('*').order('created_at', {ascending:true});
-  if(error){ console.error(error); return; }
-  renderPosts(data);
-}
-
-// --- Affichage posts ---
-function renderPosts(posts){
-  const container = document.getElementById('postsContainer');
-  container.innerHTML = '';
-  posts.forEach(post=>{
-    const card = document.createElement('div');
-    card.className='cardFlyer';
-
-    let mediaHTML='';
-    if(post.media){
-      if(post.media.match(/\.(jpeg|jpg|png|gif)$/i)) mediaHTML = `<img src="${post.media}"><br>`;
-      else mediaHTML = `<video src="${post.media}" controls></video><br>`;
-    }
-
-    card.innerHTML=`<div><b><span class="userId" onclick="privateChat('${post.user}')">${post.user}</span></b>: ${post.text}<br>${mediaHTML}Likes: ${post.likes||0}</div>`;
-
-    // Like
-    const btnLike = document.createElement('button');
-    btnLike.innerText='❤️ Like';
-    btnLike.onclick = async ()=>{
-      if(post.likedUsers?.includes(currentUser)) return alert("Vous avez déjà liké ce post !");
-      const newLikedUsers = [...(post.likedUsers||[]), currentUser];
-      await supabase.from('posts').update({ likes:(post.likes||0)+1, likedUsers:newLikedUsers }).eq('id', post.id);
-      fetchPosts();
-    }
-    card.appendChild(btnLike);
-
-    // Commentaire
-    const btnComment = document.createElement('button');
-    btnComment.innerText='💬 Commenter';
-    btnComment.onclick = async ()=>{
-      const textC = prompt("Votre commentaire :");
-      if(!textC) return;
-      const newComments = [...(post.comments||[]), { user: currentUser, text:textC, subcomments:[] }];
-      await supabase.from('posts').update({ comments:newComments }).eq('id', post.id);
-      fetchPosts();
-    }
-    card.appendChild(btnComment);
-
-    // Supprimer post si auteur
-    if(post.user === currentUser){
-      const btnDelete = document.createElement('button');
-      btnDelete.innerText='🗑 Supprimer';
-      btnDelete.onclick = async ()=>{
-        if(confirm("Supprimer ce post ?")){
-          await supabase.from('posts').delete().eq('id', post.id);
-          fetchPosts();
-        }
-      }
-      card.appendChild(btnDelete);
-    }
-
-    // Commentaires imbriqués
-    if(post.comments?.length){
-      const commentsDiv = document.createElement('div');
-      for(const c of post.comments){
-        const cDiv = document.createElement('div');
-        cDiv.className='commentDiv';
-        cDiv.innerHTML=`<b>${c.user}</b>: ${c.text}`;
-        if(c.subcomments?.length){
-          for(const sc of c.subcomments){
-            const scDiv = document.createElement('div');
-            scDiv.className='commentDiv';
-            scDiv.innerHTML=`<b>${sc.user}</b>: ${sc.text}`;
-            cDiv.appendChild(scDiv);
-          }
-commentsDiv.appendChild(cDiv);
-      }
-      card.appendChild(commentsDiv);
-    }
-
-    container.appendChild(card);
-  });
-}
-
-// --- Conversation privée ---
-function privateChat(userId){
-  alert(`Discussion privée avec ${userId} (à développer)`);
-}
+// --- Horloge ---
+function updateTime(){ document.getElementById('timeInfo').innerText=`⏰ ${new Date().toLocaleTimeString()}` }
+setInterval(updateTime,1000); updateTime()
 
 // --- Navigation ---
-function goTo(page){
-  window.location.href = page;
+function goTo(page){ window.location.href = page }
+
+// --- Chargement des posts ---
+async function loadPosts(){
+  const { data, error } = await supabase.from('posts').select('*').order('created_at',{ascending:false})
+  if(error){ console.error(error); return }
+  renderPosts(data)
 }
 
-// --- Initialisation ---
-fetchPosts();
+// --- Suppression automatique après 72h ---
+async function autoDeleteOldPosts(){
+  const now = new Date()
+  const { data } = await supabase.from('posts').select('*')
+  for(let post of data){
+    const created = new Date(post.created_at)
+    const diff = (now - created)/(1000*60*60)
+    if(diff > 72){ await supabase.from('posts').delete().eq('id', post.id) }
+  }
+}
+
+// --- Rendu des posts ---
+function renderPosts(posts){
+  const container=document.getElementById('postsContainer')
+  container.innerHTML=''
+  posts.forEach(p=>{
+    const card=document.createElement('div')
+    card.className='cardFlyer'
+    let media=''
+    if(p.media_url){
+      if(p.media_url.match(/\.mp4$/i)) media=`<video src="${p.media_url}" controls></video>`
+      else media=`<img src="${p.media_url}">`
+    }
+    card.innerHTML=`
+      <div><span class="userId" onclick="alert('Profil de ${p.user_id}')">${p.user_id}</span>: ${p.text}</div>
+      ${media}
+      <div><span class="like-btn" onclick="likePost('${p.id}')">❤️ ${p.likes||0}</span></div>
+      <small>${new Date(p.created_at).toLocaleString()}</small>
+    `
+    container.appendChild(card)
+  })
+}
+
+// --- Ajout média ---
+document.getElementById('btnAddMedia').onclick=()=>document.getElementById('mediaInput').click()
+document.getElementById('mediaInput').onchange=(e)=>{
+  const file=e.target.files[0]; if(!file)return;
+  currentFile=file
+  const preview=document.getElementById('filePreview')
+  preview.innerHTML=''
+  const url=URL.createObjectURL(file)
+  if(file.type.startsWith('image/')) preview.innerHTML=`<img src="${url}" style="max-width:100px;">`
+  else preview.innerHTML=`<video src="${url}" controls style="max-width:100px;"></video>`
+}
+
+// --- Publier ---
+document.getElementById('btnPublish').onclick=async()=>{
+  const text=document.getElementById('newPostText').value.trim()
+  if(!text && !currentFile) return alert('Écris quelque chose ou ajoute un fichier !')
+
+  let mediaUrl=null
+  if(currentFile){
+    const name=`${Date.now()}_${currentFile.name}`
+    const { error:uploadError }=await supabase.storage.from('media').upload(name,currentFile)
+    if(uploadError){ console.error(uploadError);alert('Erreur upload média');return }
+    const { data:urlData }=supabase.storage.from('media').getPublicUrl(name)
+    mediaUrl=urlData.publicUrl
+  }
+
+  const { error:insertError }=await supabase.from('posts').insert([{user_id:currentUser,text,media_url:mediaUrl,likes:0}])
+  if(insertError){ console.error(insertError);alert('Erreur création post');return }
+
+  document.getElementById('newPostText').value=''
+  document.getElementById('filePreview').innerHTML=''
+  currentFile=null
+  loadPosts()
+}
+
+// --- Like ---
+async function likePost(id){
+  const { data } = await supabase.from('posts').select('likes').eq('id',id).single()
+  const newLikes=(data.likes||0)+1
+  await supabase.from('posts').update({likes:newLikes}).eq('id',id)
+  loadPosts()
+}
+
+window.likePost=likePost
+
+autoDeleteOldPosts()
+loadPosts()
 </script>
 </body>
 </html>
