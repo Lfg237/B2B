@@ -171,6 +171,55 @@ function privateChat(userId){
 
 // navigation
 function goTo(page){ window.location.href=page; }
+<script type="module">
+  import { supabase } from './supabaseClient.js';
+
+  // Code pour récupérer et publier les posts
+  let currentUser = "User" + Math.floor(Math.random()*1000);
+  let postsList = [];
+  let currentFile = null;
+
+  async function getPosts() {
+    const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
+    if(error) return console.error(error);
+    postsList = data;
+    renderPosts();
+  }
+
+  document.getElementById('btnPublish').onclick = async () => {
+    const text = document.getElementById('newPostText').value.trim();
+    if(!text && !currentFile) return alert("Écris quelque chose ou ajoute un fichier !");
+
+    let media_url = null;
+    if(currentFile){
+      const { data: uploadData, error: uploadError } = await supabase
+        .storage.from('media').upload(`posts/${Date.now()}_${currentFile.name}`, currentFile);
+      if(uploadError) return console.error(uploadError);
+      media_url = supabase.storage.from('media').getPublicUrl(uploadData.path).publicUrl;
+    }
+
+    await supabase.from('posts').insert([{ user_id: currentUser, text: text, media: media_url }]);
+    document.getElementById('newPostText').value='';
+    currentFile = null;
+    document.getElementById('filePreview').innerHTML='';
+    getPosts();
+  }
+
+  async function renderPosts() {
+    const container = document.getElementById('postsContainer');
+    container.innerHTML='';
+    postsList.forEach((post, i) => {
+      const card = document.createElement('div');
+      card.className='cardFlyer';
+      let mediaHTML = post.media ? (post.media.includes('.mp4') ? `<video src="${post.media}" controls></video>` : `<img src="${post.media}"><br>`) : '';
+      const userHTML = `<span class="userId" onclick="alert('Chat privé à développer')">${post.user_id}</span>`;
+      card.innerHTML = `<div><b>${userHTML}</b>: ${post.text}<br>${mediaHTML}<span id="likes${i}">${post.likes || 0} ❤️</span></div>`;
+      container.appendChild(card);
+    });
+  }
+
+  getPosts();
+</script>
 
 </script>
 </body>
