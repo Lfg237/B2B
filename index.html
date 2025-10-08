@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Accueil B2B - Final</title>
+<title>Accueil B2B</title>
 <style>
 body {margin:0;font-family:Arial,sans-serif;background:#f0f2f5;}
 header{position:fixed;top:0;width:100%;background:#4a76a8;color:white;padding:10px;display:flex;justify-content:space-between;align-items:center;z-index:1000;font-size:16px;}
@@ -45,61 +45,67 @@ header button:hover{background:#2ecc71;}
 <div id="filePreview" style="display:flex;align-items:center;"></div>
 <input type="file" id="mediaInput" style="display:none;" accept="image/*,video/*">
 
-<script>
-// Pseudo utilisateur
-let currentUser = "User" + Math.floor(Math.random()*1000);
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm';
 
-// Posts simulés
-let postsList = [
-  {user:"User101", text:"Bienvenue sur B2B !", media:null, mediaType:null, likes:2, likedUsers:["User101"], comments:[]},
-  {user:"User202", text:"Ceci est un post de test.", media:null, mediaType:null, likes:1, likedUsers:["User202"], comments:[
-    {user:"User303", text:"Commentaire test", subcomments:[{user:"User101", text:"Réponse"}]}
-  ]}
-];
+// --- CONNEXION SUPABASE ---
+const supabaseUrl = 'https://nqqlsntgmorujffrntih.supabase.co';
+const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydGpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY';
+const supabase = createClient(supabaseUrl, supabaseKey);
 
-let currentFile = null;
+// --- UTILISATEUR ANONYME ---
+let currentUser = 'User'+Math.floor(Math.random()*1000);
 
-// mise à jour de l'heure
+// --- CHARGEMENT DES POSTS EXISTANTS ---
+let postsList = [];
+
+async function loadPosts() {
+  const { data, error } = await supabase.from('posts').select('*').order('created_at', {ascending:true});
+  if(error) { console.error(error); return; }
+  postsList = data;
+  renderPosts();
+}
+
+// --- MISE À JOUR DE L'HEURE ---
 function updateTime() {
   document.getElementById('timeInfo').innerText = `⏰ ${new Date().toLocaleTimeString()}`;
 }
 setInterval(updateTime,1000);
 updateTime();
 
-// ajout média
+// --- AJOUT MEDIA ---
+let currentFile = null;
 document.getElementById('btnAddMedia').onclick = ()=> document.getElementById('mediaInput').click();
-document.getElementById('mediaInput').onchange = (e)=>{
+document.getElementById('mediaInput').onchange = async (e)=>{
   const file = e.target.files[0];
   if(!file) return;
   currentFile = file;
-  const url = URL.createObjectURL(file);
-  const previewDiv = document.getElementById('filePreview');
-  previewDiv.innerHTML = '';
-  if(file.type.startsWith('image/')) previewDiv.innerHTML = `<img src="${url}">`;
-  else previewDiv.innerHTML = `<video src="${url}" controls></video>`;
 }
 
-// publier un post
-document.getElementById('btnPublish').onclick = () => {
+// --- PUBLIER UN POST ---
+document.getElementById('btnPublish').onclick = async ()=>{
   const text = document.getElementById('newPostText').value.trim();
-  if(!text && !currentFile) return alert("Écris quelque chose ou ajoute un fichier !");
-  const post = {
-    user: currentUser,
-    text: text,
-    media: currentFile ? URL.createObjectURL(currentFile) : null,
-    mediaType: currentFile ? (currentFile.type.startsWith('image/')?'image':'video') : null,
-    likes:0,
-    likedUsers:[],
-    comments:[]
-  };
-  postsList.push(post);
+  if(!text && !currentFile) return alert('Écris quelque chose ou ajoute un fichier !');
+
+  let mediaUrl = null;
+  if(currentFile){
+    const fileExt = currentFile.name.split('.').pop();
+    const fileName = `${Math.random()}.${fileExt}`;
+    const { data, error } = await supabase.storage.from('media').upload(fileName, currentFile);
+    if(error) { console.error(error); alert('Erreur upload fichier'); return; }
+    mediaUrl = supabase.storage.from('media').getPublicUrl(fileName).publicURL;
+  }
+
+  const { data, error } = await supabase.from('posts').insert([
+    { user_id: currentUser, text: text, media_url: mediaUrl }
+  ]);
+  if(error) { console.error(error); return; }
   document.getElementById('newPostText').value='';
   currentFile=null;
-  document.getElementById('filePreview').innerHTML='';
   renderPosts();
 }
 
-// afficher les posts
+// --- AFFICHAGE DES POSTS ---
 function renderPosts(){
   const container = document.getElementById('postsContainer');
   container.innerHTML='';
@@ -107,120 +113,38 @@ function renderPosts(){
     const card = document.createElement('div');
     card.className='cardFlyer';
     let mediaHTML='';
-    if(post.media){
-      mediaHTML = post.mediaType==='image'? `<img src="${post.media}"><br>` : `<video src="${post.media}" controls></video><br>`;
+    if(post.media_url){
+      if(post.media_url.match(/\.(jpeg|jpg|png|gif)$/i)) mediaHTML = `<img src="${post.media_url}"><br>`;
+      else mediaHTML = `<video src="${post.media_url}" controls></video><br>`;
     }
-    const userHTML = `<span class="userId" onclick="privateChat('${post.user}')">${post.user}</span>`;
-    card.innerHTML=`<div><b>${userHTML}</b>: ${post.text}<br>${mediaHTML}<span id="likes${i}">${post.likes} ❤️</span></div>`;
+    const userHTML = `<span class="userId" onclick="privateChat('${post.user_id}')">${post.user_id}</span>`;
+    card.innerHTML = `<div><b>${userHTML}</b>: ${post.text}<br>${mediaHTML}</div>`;
 
     // Like
     const btnLike = document.createElement('button');
     btnLike.innerText='❤️ Like';
-    btnLike.onclick = () => {
-      if(!post.likedUsers.includes(currentUser)){
-        post.likes++;
-        post.likedUsers.push(currentUser);
-        document.getElementById(`likes${i}`).innerText = `${post.likes} ❤️`;
-      } else alert("Vous avez déjà liké ce post !");
-    }
+    btnLike.onclick = () => alert('Like à implémenter avec Supabase');
     card.appendChild(btnLike);
 
     // Commenter
     const btnComment = document.createElement('button');
     btnComment.innerText='💬 Commenter';
-    btnComment.onclick=()=>{
-      const textC=prompt("Votre commentaire :");
-      if(!textC) return;
-      post.comments.push({user:currentUser,text:textC,subcomments:[]});
-      renderPosts();
-    }
+    btnComment.onclick = () => alert('Commentaires à implémenter');
     card.appendChild(btnComment);
-
-    // Commentaires imbriqués
-    if(post.comments.length>0){
-      const commentsDiv=document.createElement('div');
-      post.comments.forEach(c=>{
-        const cDiv=document.createElement('div');
-        cDiv.className='commentDiv';
-        const commentUser=`<span class="userId" onclick="privateChat('${c.user}')">${c.user}</span>`;
-        cDiv.innerHTML=`<b>${commentUser}:</b> ${c.text}`;
-        // sous-commentaires
-        if(c.subcomments.length>0){
-          c.subcomments.forEach(sc=>{
-            const scDiv=document.createElement('div');
-            scDiv.className='commentDiv';
-            const subUser=`<span class="userId" onclick="privateChat('${sc.user}')">${sc.user}</span>`;
-            scDiv.innerHTML=`<b>${subUser}:</b> ${sc.text}`;
-            cDiv.appendChild(scDiv);
-          });
-        }
-        commentsDiv.appendChild(cDiv);
-      });
-      card.appendChild(commentsDiv);
-    }
 
     container.appendChild(card);
   });
 }
-renderPosts();
 
-// conversation privée
+// --- CONVERSATION PRIVÉE ---
 function privateChat(userId){
-  alert(`Invitation à discuter en privé avec ${userId} (à développer)`);
+  alert(`Invitation à discuter en privé avec ${userId}`);
 }
 
-// navigation
-function goTo(page){ window.location.href=page; }
-<script type="module">
-  import { supabase } from './supabaseClient.js';
+// --- NAVIGATION ---
+function goTo(page){ window.location.href = page; }
 
-  // Code pour récupérer et publier les posts
-  let currentUser = "User" + Math.floor(Math.random()*1000);
-  let postsList = [];
-  let currentFile = null;
-
-  async function getPosts() {
-    const { data, error } = await supabase.from('posts').select('*').order('created_at', { ascending: false });
-    if(error) return console.error(error);
-    postsList = data;
-    renderPosts();
-  }
-
-  document.getElementById('btnPublish').onclick = async () => {
-    const text = document.getElementById('newPostText').value.trim();
-    if(!text && !currentFile) return alert("Écris quelque chose ou ajoute un fichier !");
-
-    let media_url = null;
-    if(currentFile){
-      const { data: uploadData, error: uploadError } = await supabase
-        .storage.from('media').upload(`posts/${Date.now()}_${currentFile.name}`, currentFile);
-      if(uploadError) return console.error(uploadError);
-      media_url = supabase.storage.from('media').getPublicUrl(uploadData.path).publicUrl;
-    }
-
-    await supabase.from('posts').insert([{ user_id: currentUser, text: text, media: media_url }]);
-    document.getElementById('newPostText').value='';
-    currentFile = null;
-    document.getElementById('filePreview').innerHTML='';
-    getPosts();
-  }
-
-  async function renderPosts() {
-    const container = document.getElementById('postsContainer');
-    container.innerHTML='';
-    postsList.forEach((post, i) => {
-      const card = document.createElement('div');
-      card.className='cardFlyer';
-      let mediaHTML = post.media ? (post.media.includes('.mp4') ? `<video src="${post.media}" controls></video>` : `<img src="${post.media}"><br>`) : '';
-      const userHTML = `<span class="userId" onclick="alert('Chat privé à développer')">${post.user_id}</span>`;
-      card.innerHTML = `<div><b>${userHTML}</b>: ${post.text}<br>${mediaHTML}<span id="likes${i}">${post.likes || 0} ❤️</span></div>`;
-      container.appendChild(card);
-    });
-  }
-
-  getPosts();
-</script>
-
+loadPosts();
 </script>
 </body>
 </html>
