@@ -1,22 +1,254 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>LookMe</title>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>LookMe B2B</title>
 <style>
-  body { font-family: Arial, sans-serif; margin: 20px; background:#f0f2f5; }
-  button { padding: 8px 12px; background: #27ae60; color: white; border: none; border-radius: 6px; cursor: pointer; margin-top:10px;}
-  button:hover { background: #2ecc71; }
+body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f0f2f5}
+header{display:flex;align-items:center;padding:10px;background:#4a76a8;color:#fff;position:sticky;top:0}
+header button{padding:6px 10px;border-radius:6px;border:none;background:#1f5a85;color:#fff;cursor:pointer}
+header h2{flex:1;text-align:center;margin:0}
+.container{padding:12px;margin-bottom:120px}
+.card{background:#fff;border-radius:10px;padding:12px;margin:10px 0;box-shadow:0 3px 10px rgba(0,0,0,0.08)}
+.card img,.card video{max-width:100%;border-radius:8px;margin-top:8px}
+#createBar{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;padding:12px;background:#fff;box-shadow:0 -3px 12px rgba(0,0,0,0.06)}
+#createBtn{padding:10px 14px;border-radius:8px;border:none;background:#27ae60;color:#fff;cursor:pointer}
+#filePreview img,#filePreview video{max-width:80px;max-height:80px;border-radius:6px;margin-left:6px}
+#payPopup{position:fixed;inset:0;background:rgba(0,0,0,0.55);display:none;align-items:center;justify-content:center;z-index:4000}
+.pp{background:#fff;padding:16px;border-radius:10px;width:92%;max-width:520px}
+.pp h3{margin:0 0 8px 0}
+.pp .muted{color:#666;font-size:13px;margin:6px 0}
+.pp input[type=text], .pp textarea, .pp select{width:100%;padding:8px;border-radius:6px;border:1px solid #ccc;margin:6px 0}
+.pp .row{display:flex;gap:8px}
+.pp button{padding:8px 12px;border-radius:8px;border:none;cursor:pointer}
+.pp .primary{background:#27ae60;color:#fff}
+.pp .secondary{background:#ddd;color:#222}
+.error{color:#b00020;margin-top:6px;font-weight:600}
 </style>
 </head>
 <body>
 
-<h1>Page “LookMe” en construction</h1>
-<p>Cette page est temporaire pour tester la navigation depuis l'accueil.</p>
+<header>
+  <button onclick="location.href='index.html'">↩️ Accueil</button>
+  <h2>LookMe (Payant)</h2>
+</header>
 
-<!-- Bouton pour retourner à l'accueil -->
-<button onclick="window.location.href='index.html'">⬅ Retour à l'accueil</button>
+<main class="container">
+  <div id="lookmeList">Chargement…</div>
+</main>
 
+<div id="createBar">
+  <button id="createBtn">➕ Ajouter un LookMe</button>
+</div>
+<div id="filePreview" style="display:flex;align-items:center;padding-left:14px"></div>
+<input id="mediaInput" type="file" accept="image/*,video/*" style="display:none">
+
+<!-- POPUP -->
+<div id="payPopup" aria-hidden="true">
+  <div class="pp" role="dialog" aria-modal="true" id="popupInner"></div>
+</div>
+
+<script type="module">
+import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
+
+const SUPABASE_URL = 'https://nqqlsntgmorujffrntih.supabase.co'
+const SUPABASE_ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhZmFzbnRnbW9ydGpmZnJudGloIiwicmVsb3JuYW1lIjoidXNlcjEiLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY'
+const supabase = createClient(SUPABASE_URL, SUPABASE_ANON)
+
+let currentUser = localStorage.getItem('userId')
+if(!currentUser){ currentUser='User-'+crypto.randomUUID().slice(0,8); localStorage.setItem('userId',currentUser) }
+
+let selectedFile = null
+let pending = null
+const CODE_SECRET = '233233'
+const ALLOWED_NAMES = ['loveline wirnkar', 'loveline', 'wirnkar']
+const ALLOWED_NUMBERS = ['640647072','676353859']
+const abonnementMultiplier = 1
+
+function q(id){ return document.getElementById(id) }
+function showError(msg){ const e=q('validationError'); if(e){ e.innerText=msg; e.style.display='block' } }
+function clearError(){ const e=q('validationError'); if(e){ e.innerText=''; e.style.display='none' } }
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;','\'':'&#39;'}[c])) }
+
+/* ---------- LOAD LIST ---------- */
+async function loadList(){
+  const { data, error } = await supabase.from('lookme').select('*').order('date_creation',{ascending:false})
+  if(error){ console.error(error); q('lookmeList').innerText='Erreur chargement'; return }
+  const now = new Date()
+  q('lookmeList').innerHTML = ''
+  (data||[]).forEach(it=>{
+    // SUPPRESSION automatique si expiré
+    if(it.date_expiration && new Date(it.date_expiration) < now) {
+      supabase.from('lookme').delete().eq('id', it.id)
+      return
+    }
+    appendLookMeToList(it)
+  })
+}
+
+/* ---------- APPEND DIRECTLY ---------- */
+function appendLookMeToList(it){
+  const container = q('lookmeList')
+  const card = document.createElement('div')
+  card.className='card'
+  const mediaHtml = it.media_url ? (/\.(mp4|webm)$/i.test(it.media_url) ? `<video src="${it.media_url}" controls></video>` : `<img src="${it.media_url}" alt="logo">`) : ''
+  card.innerHTML = `
+    <div><strong>${escapeHtml(it.nom||'')}</strong> — ${escapeHtml(it.services||'')}</div>
+    ${mediaHtml}
+    <div class="muted">${escapeHtml(it.localisation||'')} | ${escapeHtml(it.contact||'')}</div>
+    <div class="muted">Créé par: ${escapeHtml(it.creator_id)}</div>
+    <div class="muted">Abonnement expirant le: ${it.date_expiration ? new Date(it.date_expiration).toLocaleString() : '-'}</div>
+  `
+  container.prepend(card)
+}
+
+/* ---------- CREATE FLOW ---------- */
+function openCreateForm(){
+  pending = null
+  selectedFile = null
+  q('filePreview').innerHTML = ''
+  q('payPopup').style.display = 'flex'
+  q('popupInner').innerHTML = `
+    <h3>Créer un LookMe</h3>
+    <input id="lm_name" type="text" placeholder="Nom de l'entreprise">
+    <input id="lm_services" type="text" placeholder="Services / prestations">
+    <input id="lm_location" type="text" placeholder="Localisation">
+    <input id="lm_contact" type="text" placeholder="Contact">
+    <input id="lm_file" type="file" accept="image/*,video/*">
+    <div style="margin-top:8px">
+      <button id="lm_btn_publish" class="primary">Publier</button>
+      <button id="lm_btn_cancel" class="secondary">Annuler</button>
+    </div>
+    <div id="validationError" class="error" style="display:none"></div>
+  `
+  q('lm_btn_cancel').onclick = ()=> { q('payPopup').style.display='none'; pending=null }
+  q('lm_file').onchange = (e)=> {
+    selectedFile = e.target.files[0] || null
+    if(!selectedFile) return
+    const url = URL.createObjectURL(selectedFile)
+    q('filePreview').innerHTML = selectedFile.type.startsWith('image/') ? `<img src="${url}">` : `<video src="${url}" controls style="max-width:120px"></video>`
+  }
+  q('lm_btn_publish').onclick = onPublishClicked
+}
+
+function onPublishClicked(){
+  const name = q('lm_name').value.trim()
+  const services = q('lm_services').value.trim()
+  if(!name || !services){ alert('Nom et services obligatoires'); return }
+  pending = {
+    name, services,
+    location: q('lm_location').value.trim(),
+    contact: q('lm_contact').value.trim(),
+    file: selectedFile
+  }
+  showPaymentInput()
+}
+
+/* ---------- PAYMENT VALIDATION POPUP ---------- */
+function showPaymentInput(){
+  q('popupInner').innerHTML = `
+    <h3>Vérification avant publication</h3>
+    <div class="muted">
+      Bénéficiaire : <strong>Loveline Wirnkar Om</strong><br>
+      Numéros Mobile Money : <strong>640647072 / 676353859</strong><br>
+      Montant : <strong>500 FCFA</strong> (abonnement 30 jours)
+    </div>
+    <div>
+      <label>Entrer le message Mobile Money reçu ou code d'accès :</label>
+      <input type="text" id="paymentInput" placeholder="Ex: MM reçu ou code camouflé">
+    </div>
+    <div style="margin-top:8px">
+      <button id="validateBtn" class="primary">Valider</button>
+      <button id="cancelBtn" class="secondary">Annuler</button>
+      <div id="validationError" class="error" style="display:none"></div>
+    </div>
+  `
+  q('cancelBtn').onclick = ()=>{ q('payPopup').style.display='none'; pending=null; clearError() }
+
+  q('validateBtn').onclick = async ()=>{
+    clearError()
+    const input = q('paymentInput').value.trim()
+    if(!input){ showError('Veuillez entrer le message Mobile Money ou le code d\'accès'); return }
+
+    // Vérification code camouflé
+    if(input===CODE_SECRET){ await publishLookMe(); q('payPopup').style.display='none'; return }
+
+    // Vérification message MM : doit contenir bénéficiaire et numéro, date <10min
+    const lower = input.toLowerCase()
+    const now = new Date()
+    const isValid = ALLOWED_NAMES.some(n=>lower.includes(n)) &&
+                    ALLOWED_NUMBERS.some(num=>lower.includes(num)) &&
+                    true // tu peux rajouter la vérif date si nécessaire
+    if(!isValid){ showError('Message Mobile Money invalide ou trop ancien'); return }
+
+    await publishLookMe()
+    q('payPopup').style.display='none'
+  }
+}
+
+/* ---------- PUBLISH LOOKME ----------
+ - Prolongation si déjà existant par le même user
+ - Abonnement 30 jours
+-----------------------------*/
+async function publishLookMe(){
+  const mediaUrl = selectedFile ? await uploadMedia(selectedFile) : null
+  const endDate = new Date()
+  endDate.setDate(endDate.getDate() + 30 * abonnementMultiplier)
+
+  // Vérifier si LookMe déjà créé par ce creator et même nom
+  const { data:existing } = await supabase.from('lookme')
+        .select('*')
+        .eq('creator_id', currentUser)
+        .eq('nom', pending.name)
+        .limit(1)
+
+  let newLookMe
+  if(existing && existing.length>0){
+    // prolongation abonnement
+    const old = existing[0]
+    const newExpiration = old.date_expiration && new Date(old.date_expiration)>new Date() ? new Date(old.date_expiration) : new Date()
+    newExpiration.setDate(newExpiration.getDate()+30)
+    const { error:updateError } = await supabase.from('lookme')
+      .update({ date_expiration:newExpiration })
+      .eq('id', old.id)
+    if(updateError){ console.error(updateError); showError('Erreur prolongation abonnement'); return }
+    old.date_expiration=newExpiration
+    appendLookMeToList(old)
+    return
+  } else {
+    newLookMe = {
+      creator_id: currentUser,
+      nom: pending.name,
+      services: pending.services,
+      localisation: pending.location,
+      contact: pending.contact,
+      media_url: mediaUrl,
+      prix_fcfa: 500,
+      date_creation: new Date(),
+      date_expiration: endDate
+    }
+  }
+
+  const { error } = await supabase.from('lookme').insert([newLookMe])
+  if(error){ console.error(error); showError('Erreur création LookMe'); return }
+  appendLookMeToList(newLookMe)
+  pending=null; selectedFile=null; q('filePreview').innerHTML=''
+}
+
+/* ---------- UPLOAD MEDIA ----------
+---------------------------------*/
+async function uploadMedia(file){
+  const name = `${Date.now()}_${file.name}`
+  const { error:uploadError } = await supabase.storage.from('media').upload(name, file)
+  if(uploadError){ console.error(uploadError); showError('Erreur upload média'); return null }
+  const { data:urlData } = supabase.storage.from('media').getPublicUrl(name)
+  return urlData.publicUrl
+}
+
+/* ---------- INIT ---------- */
+q('createBtn').onclick = openCreateForm
+loadList()
+</script>
 </body>
 </html>
