@@ -30,12 +30,6 @@ header .center {font-weight:bold;font-size:22px; margin-bottom:8px;}
 <body>
 
 <header>
-
-
-<button onclick="window.location.href='lookme.html'" 
-        style="padding:10px 16px;border:none;border-radius:8px;background:#27ae60;color:white;cursor:pointer">
-  🚀 Ouvrir LookMe
-</button>
   <div class="icon-group">
     <div onclick="goTo('groupes.html')"><span>👥</span><br>Groupes</div>
     <div onclick="goTo('sondages.html')"><span>⚖️</span><br>Sondages</div>
@@ -175,56 +169,6 @@ document.getElementById('btnPublish').onclick = async ()=>{
 
 // --- Chargement initial ---
 loadPosts()
-// 🧹 Nettoyage automatique (posts, groupes, paiements) après 72h
-async function cleanOldData() {
-  const now = Date.now()
-  const limit = 72 * 60 * 60 * 1000 // 72 heures
-
-  try {
-    // --- Suppression des posts anciens
-    const { data: oldPosts } = await supabase.from('posts').select('id, created_at')
-    if (oldPosts) {
-      for (const post of oldPosts) {
-        const age = now - new Date(post.created_at).getTime()
-        if (age > limit) {
-          await supabase.from('posts').delete().eq('id', post.id)
-          console.log('🗑️ Post supprimé:', post.id)
-        }
-      }
-    }
-
-    // --- Suppression des groupes anciens
-    const { data: oldGroups } = await supabase.from('groups').select('id, created_at')
-    if (oldGroups) {
-      for (const g of oldGroups) {
-        const age = now - new Date(g.created_at).getTime()
-        if (age > limit) {
-          await supabase.from('groups').delete().eq('id', g.id)
-          console.log('🗑️ Groupe supprimé:', g.id)
-        }
-      }
-    }
-
-    // --- Suppression des paiements anciens
-    const { data: oldPayments } = await supabase.from('paiements').select('id, created_at')
-    if (oldPayments) {
-      for (const pay of oldPayments) {
-        const age = now - new Date(pay.created_at).getTime()
-        if (age > limit) {
-          await supabase.from('paiements').delete().eq('id', pay.id)
-          console.log('🗑️ Paiement supprimé:', pay.id)
-        }
-      }
-    }
-
-  } catch (err) {
-    console.error('Erreur lors du nettoyage:', err)
-  }
-}
-
-// Lancer au chargement + toutes les 60 minutes
-cleanOldData()
-setInterval(cleanOldData, 60 * 60 * 1000)
 </script>
 </body>
 </html>
