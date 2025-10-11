@@ -171,6 +171,29 @@ document.getElementById('btnPublish').onclick = async ()=>{
 loadPosts()
 <!-- Conteneur du Bot -->
 <div id="botInterface"></div>
+<body>
+  <!-- ... ton contenu existant ... -->
+
+  <!-- Conteneur du Bot -->
+  <div id="botInterface"></div>
+
+  <!-- Script pour initialiser le Bot -->
+  <script type="module">
+    import { initBot } from './LesfacilitateursBot.js';
+
+    const bot = initBot(
+      'botInterface', // id de la div
+      { 
+        url: 'https://XXXX.supabase.co', // ton URL Supabase
+        key: 'PUBLIC_ANON_KEY'          // clé publique
+      }, 
+      { 
+        userId: 'user-1234', 
+        language: 'fr-FR'
+      }
+    );
+  </script>
+</body>
 </script>
 </body>
 </html>
