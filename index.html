@@ -156,16 +156,28 @@ document.getElementById('mediaInput').onchange = e=>{
 }
 
 // --- Publier post ---
-document.getElementById('btnPublish').onclick = async ()=>{
+document.getElementById('btnPublish').onclick = async () => {
   const text = document.getElementById('newPostText').value.trim()
   if(!text && !currentFile) return alert('Écris quelque chose ou ajoute un fichier !')
 
   let mediaUrl = null
   if(currentFile){
-    const name = `${Date.now()}_${currentFile.name}`
-    const { error:uploadError } = await supabase.storage.from('media').upload(name,currentFile)
-    if(uploadError){ console.error(uploadError); alert('Erreur upload média'); return }
-    const { data: urlData } = supabase.storage.from('media').getPublicUrl(name)
+    const fileName = `${Date.now()}_${currentFile.name}`
+    const { data: uploadData, error: uploadError } = await supabase
+      .storage
+      .from('media')
+      .upload(fileName, currentFile)
+
+    if(uploadError){
+      console.error(uploadError)
+      return alert('Erreur upload média')
+    }
+
+    const { data: urlData } = supabase
+      .storage
+      .from('media')
+      .getPublicUrl(fileName)
+
     mediaUrl = urlData.publicUrl
   }
 
@@ -175,13 +187,20 @@ document.getElementById('btnPublish').onclick = async ()=>{
     text,
     media_url: mediaUrl,
     likes: 0,
-    created_at: new Date()
+    created_at: new Date().toISOString()
   }])
-  if(error){ console.error(error); alert('Erreur création post'); return }
 
-  document.getElementById('newPostText').value=''
-  document.getElementById('filePreview').innerHTML=''
+  if(error){
+    console.error(error)
+    return alert('Erreur création post')
+  }
+
+  // Réinitialiser l’interface
+  document.getElementById('newPostText').value = ''
+  document.getElementById('filePreview').innerHTML = ''
   currentFile = null
+
+  // Recharger les posts
   loadPosts()
 }
 
