@@ -81,7 +81,15 @@ input, textarea {
 </head>
 <body>
 <h1>LesFacilitateurs</h1>
-
+<!-- Compteur et liste des abonnés -->
+<div id="subscribersBar" style="margin: 12px 0; position: relative;">
+  <button id="toggleSubscribers">Abonnés: 0 ⬇️</button>
+  <div id="subscribersList" style="display:none; 
+      position: absolute; background:#11192a; 
+      max-height:200px; overflow-y:auto; width:200px; border-radius:8px; padding:8px; z-index:10;">
+    <!-- Liste des abonnés chargée ici -->
+  </div>
+</div>
 <!-- Zone d'accès admin -->
 <div id="adminCodeArea">
   <label>🔐 Entrer le code administrateur :</label>
@@ -273,6 +281,30 @@ window.deletePost = async (id) => {
 }
 
 loadPosts()
+const toggleBtn = document.getElementById('toggleSubscribers');
+const subscribersList = document.getElementById('subscribersList');
+
+async function loadSubscribers() {
+  const { data: users, error } = await supabase.from('utilisateurs').select('id');
+  if (error) return console.error(error);
+  
+  subscribersList.innerHTML = '';
+  users.forEach(u => {
+    const div = document.createElement('div');
+    div.textContent = u.id;
+    subscribersList.appendChild(div);
+  });
+  
+  toggleBtn.textContent = `Abonnés: ${users.length} ⬇️`;
+}
+
+// Toggle affichage
+toggleBtn.addEventListener('click', () => {
+  subscribersList.style.display = subscribersList.style.display === 'none' ? 'block' : 'none';
+});
+
+// Charger au départ
+loadSubscribers();
 </script>
 </body>
 </html>
