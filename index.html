@@ -72,6 +72,11 @@ input, textarea {
   border-radius: 12px;
   margin-bottom: 15px;
 }
+.post-link {
+  color: #00aaff;
+  text-decoration: underline;
+  cursor: pointer;
+}
 </style>
 </head>
 <body>
@@ -95,6 +100,44 @@ input, textarea {
 
 <!-- Liste des posts -->
 <div id="postsContainer"></div>
+
+<!-- Barre de boutons horizontale pour liens externes -->
+<div id="externalLinksBar" style="display:flex; overflow-x:auto; gap:8px; padding:8px; background:#1c1f2b; color:white;">
+  <button class="link-btn" data-url="https://b2-b-rho.vercel.app">B2B App</button>
+  <button class="link-btn" data-url="https://facebook.com">Facebook</button>
+  <button class="link-btn" data-url="https://lesfacilitateurs.cm">LesFacilitateurs</button>
+  <button class="link-btn" data-url="https://example.com">Lien 4</button>
+  <button class="link-btn" data-url="https://example.com">Lien 5</button>
+</div>
+
+<!-- Iframe pour afficher les liens -->
+<div id="linkViewer" style="width:100%; height:400px; display:none; border:none;">
+  <iframe id="iframeViewer" style="width:100%; height:100%; border:none;"></iframe>
+</div>
+
+<script>
+  const buttons = document.querySelectorAll('.link-btn');
+  const iframeViewer = document.getElementById('iframeViewer');
+  const linkViewer = document.getElementById('linkViewer');
+
+  buttons.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const url = btn.dataset.url;
+      iframeViewer.src = url;
+      linkViewer.style.display = 'block';
+    });
+  });
+
+  // Gestion des liens dans les posts
+  document.addEventListener('click', function(e) {
+    if (e.target.classList.contains('post-link')) {
+      e.preventDefault();
+      const url = e.target.dataset.url;
+      iframeViewer.src = url;
+      linkViewer.style.display = 'block';
+    }
+  });
+</script>
 
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
@@ -175,19 +218,16 @@ document.getElementById('btnPublish').onclick = async () => {
 
 // Charger posts
 async function loadPosts() {
-  const { data: posts } = await supabase.from('posts').select('*').order('created_at', { ascending: false })
   postsContainer.innerHTML = ''
+  const { data: posts } = await supabase.from('posts').select().order('created_at', { ascending: false })
   posts.forEach(post => {
-    let media = ''
-    if (post.media_url) {
-      media = post.media_url.match(/\.mp4$/i)
-        ? `<video src="${post.media_url}" controls></video>`
-        : `<img src="${post.media_url}">`
-    }
+    const media = post.media_url ? (post.media_url.endsWith('.mp4')
+      ? `<video src="${post.media_url}" controls></video>`
+      : `<img src="${post.media_url}">`) : ''
     const card = document.createElement('div')
     card.className = 'cardFlyer'
     card.innerHTML = `
-      <b>${post.user_id}</b>: ${post.text}<br>
+      <b>${post.user_id}</b>: ${formatPostText(post.text)}<br>
       ${media}
       <div style="margin-top:6px;">
         <span class="like-btn" onclick="likePost('${post.id}')">❤️ ${post.likes || 0}</span>
@@ -197,6 +237,12 @@ async function loadPosts() {
     `
     postsContainer.appendChild(card)
   })
+}
+
+// Transformation du texte en HTML cliquable
+function formatPostText(text) {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  return text.replace(urlRegex, '<a href="#" class="post-link" data-url="$1">$1</a>');
 }
 
 // Like
@@ -210,7 +256,15 @@ window.likePost = async (id) => {
   await supabase.from('posts').update({ likes: newLikes, liked_by: newLikedBy }).eq('id', id)
   loadPosts()
 }
-
+// --- Abonnement en temps réel pour les likes ---
+supabase
+  .channel('public:posts')
+  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' }, payload => {
+    const updatedPost = payload.new
+    const likeSpan = document.querySelector(`.like-btn[onclick="likePost('${updatedPost.id}')"]`)
+    if (likeSpan) likeSpan.textContent = `❤️ ${updatedPost.likes || 0}`
+  })
+  .subscribe()
 // Supprimer post (admin)
 window.deletePost = async (id) => {
   if (!isAdmin) return alert('Seul l’administrateur peut supprimer.')
