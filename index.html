@@ -1,77 +1,101 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8"/>
-<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-<title>Accueil B2B</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Espace LesFacilitateurs</title>
 <style>
-body {margin:0;font-family:Arial,sans-serif;background:#f0f2f5;}
-header {display:flex; flex-direction:column; align-items:center; padding:15px 10px; background:#4a76a8; color:white;}
-header .icon-group {display:flex; justify-content:center; gap:20px; margin-bottom:8px;}
-header .icon-group div {text-align:center; cursor:pointer;}
-header .icon-group div span {font-size:20px;}
-header .center {font-weight:bold;font-size:22px; margin-bottom:8px;}
-#searchBar {width:100%; display:flex; justify-content:center; margin-bottom:5px;}
-#searchBar input[type=text] {width:60%; padding:6px; border-radius:6px; border:1px solid #ccc;}
-#searchBar button {padding:6px 10px; margin-left:5px; border:none; border-radius:6px; background:#27ae60; color:white; cursor:pointer;}
-.container {padding:10px; margin-top:10px; margin-bottom:120px;}
-.cardFlyer {background:white; margin:10px 0; padding:10px; border-radius:12px; box-shadow:0 3px 8px rgba(0,0,0,0.2);}
-.cardFlyer img,.cardFlyer video{max-width:100%;border-radius:8px;margin-top:5px;cursor:pointer;}
-.userId{color:#2980b9; cursor:pointer; font-weight:bold;}
-.like-btn{color:#e74c3c; cursor:pointer;}
-.like-btn:hover{color:#c0392b;}
-#publishArea{position:fixed;bottom:0;left:0;width:100%;background:#fff;padding:10px;display:flex;gap:4px;align-items:center;box-shadow:0 -2px 5px rgba(0,0,0,0.1);}
-#publishArea input[type=text]{flex:1;padding:6px;border-radius:6px;border:1px solid #ccc;}
-#publishArea button{padding:6px 10px;border-radius:6px;border:none;background:#27ae60;color:white;cursor:pointer;}
-#publishArea button:hover{background:#2ecc71;}
-#filePreview img,#filePreview video{max-width:80px;max-height:80px;border-radius:6px;margin-left:5px;}
+body {
+  background-color: #0a0f1a;
+  color: #e0e6ff;
+  font-family: 'Poppins', sans-serif;
+  margin: 0;
+  padding: 10px;
+}
+h1 {
+  text-align: center;
+  color: #4ea1ff;
+}
+.cardFlyer {
+  background: #121b2c;
+  border-radius: 12px;
+  padding: 12px;
+  margin-bottom: 10px;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+}
+.cardFlyer img, .cardFlyer video {
+  max-width: 100%;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+button {
+  background: #0044cc;
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+}
+button:hover {
+  background: #0059ff;
+}
+.like-btn {
+  cursor: pointer;
+  color: #ff4d6d;
+  font-weight: bold;
+}
+#publishArea {
+  display: none;
+  flex-direction: column;
+  gap: 8px;
+  margin-bottom: 15px;
+  background: #11192a;
+  padding: 10px;
+  border-radius: 12px;
+}
+#filePreview img, #filePreview video {
+  max-width: 100%;
+  border-radius: 8px;
+  margin-top: 8px;
+}
+input, textarea {
+  width: 100%;
+  background: #0f1626;
+  color: white;
+  border: 1px solid #2a3b57;
+  border-radius: 8px;
+  padding: 8px;
+}
+#adminCodeArea {
+  background: #11192a;
+  padding: 12px;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
 </style>
 </head>
 <body>
+<h1>LesFacilitateurs</h1>
 
-<header>
-
-
-<button onclick="window.location.href='lookme.html'" 
-        style="padding:10px 16px;border:none;border-radius:8px;background:#27ae60;color:white;cursor:pointer">
-  🚀 Ouvrir LookMe
-</button>
-  <div class="icon-group">
-    <div onclick="goTo('groupes.html')"><span>👥</span><br>Groupes</div>
-    <div onclick="goTo('sondages.html')"><span>⚖️</span><br>Sondages</div>
-    <div onclick="goTo('lookme.html')"><span>👁️</span><br>LookMe</div>
-    <div onclick="goTo('admin.html')"><span>⚙️</span><br>Admin</div>
-  </div>
-  <div class="center">B2B</div>
-  <div id="searchBar">
-    <input type="text" id="searchInput" placeholder="Rechercher...">
-    <button onclick="doSearch()">➡️</button>
-  </div>
-  <div id="timeInfo">⏰ --:--</div>
-</header>
-
-<div class="container" id="postsContainer"></div>
-
-<div id="publishArea">
-  <input type="text" id="newPostText" placeholder="Écrire un post...">
-  <button id="btnAddMedia">📎</button>
-  <button id="btnPublish">📤 Publier</button>
+<!-- Zone d'accès admin -->
+<div id="adminCodeArea">
+  <label>🔐 Entrer le code administrateur :</label>
+  <input type="password" id="adminCodeInput" placeholder="Code admin...">
+  <button onclick="checkAdminCode()">Valider</button>
 </div>
-<div id="filePreview" style="display:flex;align-items:center;"></div>
-<input type="file" id="mediaInput" style="display:none;" accept="image/*,video/*">
-<div id="botInterface"></div>
 
-<script type="module">
-import { initBot } from './facilitateursBot.js';
+<!-- Zone publication -->
+<div id="publishArea">
+  <textarea id="newPostText" placeholder="Écrire un post..."></textarea>
+  <div id="filePreview"></div>
+  <input type="file" id="mediaInput" accept="image/*,video/*" hidden>
+  <button id="btnAddMedia">+ Ajouter média</button>
+  <button id="btnPublish">Publier</button>
+</div>
 
-const bot = initBot('botInterface', 
-  { url: 'https://xxxx.supabase.co', key: 'PUBLIC_ANON_KEY' }, 
-  { userId: 'user-1234', language: 'fr-FR' }
-);
+<!-- Liste des posts -->
+<div id="postsContainer"></div>
 
-// Exemple pour envoyer un message
-bot.handleBotMessage('Je cherche un emploi');
-</script>
 <script type="module">
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
 
@@ -81,103 +105,54 @@ const supabase = createClient(supabaseUrl, supabaseKey)
 
 let currentUser = 'User-' + crypto.randomUUID().slice(0,8)
 let currentFile = null
+let isAdmin = false
 
-// Horloge
-function updateTime(){ document.getElementById('timeInfo').innerText=`⏰ ${new Date().toLocaleTimeString()}` }
-setInterval(updateTime,1000); updateTime()
+const adminCodeInput = document.getElementById('adminCodeInput')
+const postsContainer = document.getElementById('postsContainer')
+const publishArea = document.getElementById('publishArea')
+const adminCodeArea = document.getElementById('adminCodeArea')
+const filePreview = document.getElementById('filePreview')
 
-function goTo(page){ window.location.href = page }
+// Masquer zone publication au départ
+publishArea.style.display = 'none'
 
-// --- Recherche ---
-window.doSearch = async function(){
-  const term = document.getElementById('searchInput').value.trim().toLowerCase()
-  const { data: posts, error } = await supabase.from('posts').select('*').order('created_at',{ascending:true})
-  if(error){ console.error(error); return }
-  const filtered = posts.filter(p=>p.text.toLowerCase().includes(term) || p.user_id.toLowerCase().includes(term))
-  renderPosts(filtered)
+// Vérification code admin
+window.checkAdminCode = function() {
+  const code = adminCodeInput.value.trim()
+  if (code === '233233') {
+    isAdmin = true
+    alert('✅ Accès administrateur activé !')
+    adminCodeArea.style.display = 'none'
+    publishArea.style.display = 'flex'
+    loadPosts()
+  } else {
+    alert('❌ Code incorrect, accès refusé')
+  }
 }
 
-// --- Chargement des posts ---
-async function loadPosts(){
-  const { data: posts, error } = await supabase.from('posts').select('*').order('created_at',{ascending:true})
-  if(error){ console.error(error); return }
-  renderPosts(posts)
-}
-
-// --- Render posts ---
-function renderPosts(posts){
-  const container = document.getElementById('postsContainer')
-  container.innerHTML = ''
-  posts.forEach(post=>{
-    const card = document.createElement('div')
-    card.className = 'cardFlyer'
-
-    let media = ''
-    if(post.media_url){
-      if(post.media_url.match(/\.mp4$/i)) media=`<video src="${post.media_url}" controls></video>`
-      else media=`<img src="${post.media_url}">`
-    }
-
-    card.innerHTML = `
-      <div>
-        <span class="userId">${post.user_id}</span>: ${post.text}
-        ${media}
-        <div><span class="like-btn" onclick="likePost('${post.id}')">❤️ ${post.likes||0}</span></div>
-        <small>${new Date(post.created_at).toLocaleString()}</small>
-      </div>
-    `
-    container.appendChild(card)
-  })
-}
-
-// --- Like post ---
-window.likePost = async function(postId){
-  try {
-    const { data, error } = await supabase.from('posts').select('likes').eq('id', postId).single()
-    if(error){ console.error(error); return }
-    const newLikes = (data.likes||0)+1
-    const { error:updateError } = await supabase.from('posts').update({likes:newLikes}).eq('id',postId)
-    if(updateError){ console.error(updateError); return }
-    const likeSpan = document.querySelector(`.like-btn[onclick="likePost('${postId}')"]`)
-    if(likeSpan) likeSpan.textContent = `❤️ ${newLikes}`
-  } catch(err){ console.error(err) }
-}
-
-// --- Gestion des fichiers média ---
-document.getElementById('btnAddMedia').onclick = ()=> document.getElementById('mediaInput').click()
-document.getElementById('mediaInput').onchange = e=>{
+// Gestion média
+document.getElementById('btnAddMedia').onclick = () => document.getElementById('mediaInput').click()
+document.getElementById('mediaInput').onchange = e => {
   currentFile = e.target.files[0]
-  if(!currentFile) return
+  if (!currentFile) return
   const url = URL.createObjectURL(currentFile)
-  const preview = document.getElementById('filePreview')
-  preview.innerHTML = currentFile.type.startsWith('image/') 
-    ? `<img src="${url}" style="max-width:100px; max-height:100px; border-radius:6px;">`
-    : `<video src="${url}" controls style="max-width:100px; max-height:100px; border-radius:6px;"></video>`
+  filePreview.innerHTML = currentFile.type.startsWith('image/')
+    ? `<img src="${url}">`
+    : `<video src="${url}" controls></video>`
 }
 
-// --- Publier post ---
+// Publier post (admin seulement)
 document.getElementById('btnPublish').onclick = async () => {
+  if (!isAdmin) return alert('Seul l’administrateur peut publier.')
   const text = document.getElementById('newPostText').value.trim()
-  if(!text && !currentFile) return alert('Écris quelque chose ou ajoute un fichier !')
+  if (!text && !currentFile) return alert('Rien à publier.')
 
   let mediaUrl = null
-  if(currentFile){
+  if (currentFile) {
     const fileName = `${Date.now()}_${currentFile.name}`
-    const { data: uploadData, error: uploadError } = await supabase
-      .storage
-      .from('media')
-      .upload(fileName, currentFile)
-
-    if(uploadError){
-      console.error(uploadError)
-      return alert('Erreur upload média')
-    }
-
-    const { data: urlData } = supabase
-      .storage
-      .from('media')
-      .getPublicUrl(fileName)
-
+    const { error: uploadError } = await supabase.storage.from('media').upload(fileName, currentFile)
+    if (uploadError) return alert('Erreur upload média.')
+    const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName)
     mediaUrl = urlData.publicUrl
   }
 
@@ -187,75 +162,63 @@ document.getElementById('btnPublish').onclick = async () => {
     text,
     media_url: mediaUrl,
     likes: 0,
+    liked_by: [],
     created_at: new Date().toISOString()
   }])
+  if (error) return alert('Erreur création post.')
 
-  if(error){
-    console.error(error)
-    return alert('Erreur création post')
-  }
-
-  // Réinitialiser l’interface
   document.getElementById('newPostText').value = ''
-  document.getElementById('filePreview').innerHTML = ''
+  filePreview.innerHTML = ''
   currentFile = null
-
-  // Recharger les posts
   loadPosts()
 }
 
-// --- Chargement initial ---
-loadPosts()
-// 🧹 Nettoyage automatique (posts, groupes, paiements) après 72h
-async function cleanOldData() {
-  const now = Date.now()
-  const limit = 72 * 60 * 60 * 1000 // 72 heures
-
-  try {
-    // --- Suppression des posts anciens
-    const { data: oldPosts } = await supabase.from('posts').select('id, created_at')
-    if (oldPosts) {
-      for (const post of oldPosts) {
-        const age = now - new Date(post.created_at).getTime()
-        if (age > limit) {
-          await supabase.from('posts').delete().eq('id', post.id)
-          console.log('🗑️ Post supprimé:', post.id)
-        }
-      }
+// Charger posts
+async function loadPosts() {
+  const { data: posts } = await supabase.from('posts').select('*').order('created_at', { ascending: false })
+  postsContainer.innerHTML = ''
+  posts.forEach(post => {
+    let media = ''
+    if (post.media_url) {
+      media = post.media_url.match(/\.mp4$/i)
+        ? `<video src="${post.media_url}" controls></video>`
+        : `<img src="${post.media_url}">`
     }
-
-    // --- Suppression des groupes anciens
-    const { data: oldGroups } = await supabase.from('groups').select('id, created_at')
-    if (oldGroups) {
-      for (const g of oldGroups) {
-        const age = now - new Date(g.created_at).getTime()
-        if (age > limit) {
-          await supabase.from('groups').delete().eq('id', g.id)
-          console.log('🗑️ Groupe supprimé:', g.id)
-        }
-      }
-    }
-
-    // --- Suppression des paiements anciens
-    const { data: oldPayments } = await supabase.from('paiements').select('id, created_at')
-    if (oldPayments) {
-      for (const pay of oldPayments) {
-        const age = now - new Date(pay.created_at).getTime()
-        if (age > limit) {
-          await supabase.from('paiements').delete().eq('id', pay.id)
-          console.log('🗑️ Paiement supprimé:', pay.id)
-        }
-      }
-    }
-
-  } catch (err) {
-    console.error('Erreur lors du nettoyage:', err)
-  }
+    const card = document.createElement('div')
+    card.className = 'cardFlyer'
+    card.innerHTML = `
+      <b>${post.user_id}</b>: ${post.text}<br>
+      ${media}
+      <div style="margin-top:6px;">
+        <span class="like-btn" onclick="likePost('${post.id}')">❤️ ${post.likes || 0}</span>
+        ${isAdmin ? `<button onclick="deletePost('${post.id}')">🗑️</button>` : ''}
+      </div>
+      <small>${new Date(post.created_at).toLocaleString()}</small>
+    `
+    postsContainer.appendChild(card)
+  })
 }
 
-// Lancer au chargement + toutes les 60 minutes
-cleanOldData()
-setInterval(cleanOldData, 60 * 60 * 1000)
+// Like
+window.likePost = async (id) => {
+  const { data: post } = await supabase.from('posts').select('likes, liked_by').eq('id', id).single()
+  if (!post) return
+  if (post.liked_by?.includes(currentUser)) return alert('Déjà liké !')
+
+  const newLikes = (post.likes || 0) + 1
+  const newLikedBy = [...(post.liked_by || []), currentUser]
+  await supabase.from('posts').update({ likes: newLikes, liked_by: newLikedBy }).eq('id', id)
+  loadPosts()
+}
+
+// Supprimer post (admin)
+window.deletePost = async (id) => {
+  if (!isAdmin) return alert('Seul l’administrateur peut supprimer.')
+  await supabase.from('posts').delete().eq('id', id)
+  loadPosts()
+}
+
+loadPosts()
 </script>
 </body>
 </html>
