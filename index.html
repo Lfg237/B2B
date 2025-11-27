@@ -1,302 +1,186 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Espace LesFacilitateurs</title>
+<meta charset="UTF-8" />
+<title>Devis A6 Professionnel</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 <style>
-body {
-  background-color: #0a0f1a;
-  color: #e0e6ff;
-  font-family: 'Poppins', sans-serif;
-  margin: 0;
-  padding: 10px;
-}
-h1 {
-  text-align: center;
-  color: #4ea1ff;
-}
-.cardFlyer {
-  background: #121b2c;
-  border-radius: 12px;
-  padding: 12px;
-  margin-bottom: 10px;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.4);
-}
-.cardFlyer img, .cardFlyer video {
-  max-width: 100%;
-  border-radius: 10px;
-  margin-top: 8px;
-}
-button {
-  background: #0044cc;
-  color: white;
-  border: none;
-  border-radius: 8px;
-  padding: 8px 12px;
-  cursor: pointer;
-}
-button:hover {
-  background: #0059ff;
-}
-.like-btn {
-  cursor: pointer;
-  color: #ff4d6d;
-  font-weight: bold;
-}
-#publishArea {
-  display: none;
-  flex-direction: column;
-  gap: 8px;
-  margin-bottom: 15px;
-  background: #11192a;
-  padding: 10px;
-  border-radius: 12px;
-}
-#filePreview img, #filePreview video {
-  max-width: 100%;
-  border-radius: 8px;
-  margin-top: 8px;
-}
-input, textarea {
-  width: 100%;
-  background: #0f1626;
-  color: white;
-  border: 1px solid #2a3b57;
-  border-radius: 8px;
-  padding: 8px;
-}
-#adminCodeArea {
-  background: #11192a;
-  padding: 12px;
-  border-radius: 12px;
-  margin-bottom: 15px;
-}
-.post-link {
-  color: #00aaff;
-  text-decoration: underline;
-  cursor: pointer;
-}
+/* Styles généraux */
+body { margin: 0; padding: 10px; font-family: Arial, sans-serif; background: #e5eeff; }
+#pagesContainer { max-height: 95vh; overflow-y: auto; }
+.page { width: 420px; min-height: 595px; margin: 15px auto; background: white; border-radius: 10px; padding: 15px; position: relative; overflow: visible; box-shadow: 0 0 10px rgba(0,0,0,0.2); page-break-after: always; }
+#bg { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; z-index:0; opacity: 0.25; }
+.header { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; }
+.header .titles { text-align: left; flex:1; }
+.header h1 { font-size: 20px; margin:0; }
+.header h2 { font-size: 14px; margin:0; color:#444; }
+#logoBox { width: 70px; height: 70px; border: 2px dashed #777; display:flex; justify-content:center; align-items:center; background:white; cursor:pointer; margin-left:10px; border-radius:5px; }
+button { padding: 7px 10px; border:none; border-radius:5px; cursor:pointer; font-size:12px; background:#10b981; color:white; margin:4px; z-index:3; position:relative; }
+.table-container { position: relative; z-index: 2; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 5px; margin-top: 10px; overflow-x:auto; }
+table { width: 100%; border-collapse: collapse; font-size: 12px; }
+th, td { border: 1px solid #ccc; padding: 4px; text-align:center; }
+th { background:#10b981; color:white; }
+.total-box { margin-top:10px; font-size: 13px; z-index:2; position: relative; }
+.signature { position: absolute; bottom: 15px; right: 15px; font-size:10px; color:#333; z-index:2; text-align:right; }
 </style>
 </head>
 <body>
-<h1>📺 lookme visibilité community manager contact ton administrateur pour la pub ☎️What's 651475255 </h1>
-<!-- Compteur et liste des abonnés -->
-<div id="subscribersBar" style="margin: 12px 0; position: relative;">
-  <button id="toggleSubscribers">Abonnés: 10000 ⬇️</button>
-  <div id="subscribersList" style="display:none; 
-      position: absolute; background:#11192a; 
-      max-height:200px; overflow-y:auto; width:200px; border-radius:8px; padding:8px; z-index:10;">
-    <!-- Liste des abonnés chargée ici -->
+<div id="pagesContainer">
+  <div class="page" id="pageContent">
+    <!-- Image de fond du devis -->
+    <img id="bg" src="" />
+
+    <div class="header">
+      <div class="titles">
+        <!-- Titres éditables -->
+        <h1 contenteditable="true">Nom de l'entreprise</h1>
+        <h2 contenteditable="true">Titre du Devis</h2>
+      </div>
+      <!-- Logo modifiable -->
+      <div id="logoBox">Logo
+        <input type="file" id="logoInput" accept="image/*" style="display:none;">
+      </div>
+    </div>
+
+    <!-- Boutons pour ajouter ligne, changer background et télécharger PDF -->
+    <button id="addLineBtn">Ajouter une ligne</button>
+    <button id="downloadBtn">Télécharger PDF</button>
+    <button id="bgBtn">Arrière-plan</button>
+
+    <div class="table-container">
+      <!-- Tableau de devis avec lignes éditables -->
+      <table id="devisTable">
+        <tr>
+          <th>Désignation</th>
+          <th>Qté</th>
+          <th>PU</th>
+          <th>Total</th>
+        </tr>
+        <tr contenteditable="true">
+          <td>Exemple</td>
+          <td>1</td>
+          <td>1000</td>
+          <td>1000</td>
+        </tr>
+      </table>
+    </div>
+
+    <!-- Totaux avec recalcul automatique -->
+    <div class="total-box">
+      <p>Total matériel : <span id="totalMateriel">1000</span> FCFA</p>
+      <p>Main d'œuvre : <span contenteditable="true" id="mainOeuvre">0</span> FCFA</p>
+      <p style="font-weight:bold;">Total général : <span id="totalGeneral">1000</span> FCFA</p>
+    </div>
+
+    <!-- Signature fixe avec informations Lesfacilitateurs -->
+    <div class="signature" contenteditable="true">
+      Créé par Lesfacilitateurs Middleman – WhatsApp : +237651475255
+    </div>
   </div>
 </div>
-<!--Zone d'accès admin -->
-<div id="adminCodeArea">
-  <label>🔐 Entrer le code administrateur :</label>
-  <input type="password" id="adminCodeInput" placeholder="Code admin...">
-  <button onclick="checkAdminCode()">Valider</button>
-</div>
 
-<!-- Zone publication -->
-<div id="publishArea">
-  <textarea id="newPostText" placeholder="Écrire un post..."></textarea>
-  <div id="filePreview"></div>
-  <input type="file" id="mediaInput" accept="image/*,video/*" hidden>
-  <button id="btnAddMedia">+ Ajouter média</button>
-  <button id="btnPublish">Publier</button>
-</div>
-
-<!-- Liste des posts -->
-<div id="postsContainer"></div>
-
-<!-- Barre de boutons horizontale pour <!-- Barre de boutons horizontale pour liens externes -->
-<div id="externalLinksBar" style="display:flex; overflow-x:auto; gap:8px; padding:8px; background:#1c1f2b; color:white;">
-  <button class="link-btn" data-url="https://lovestring.vercel.app/">rencontre célibataire</button>
-  <button class="link-btn" data-url="htt://facebook.com">❌</button>
-  <button class="link-btn" data-url="https://lesfacilitateurs.cm">❌</button>
-  <button class="link-btn" data-url="https://example.com">❌</button>
-  <button class="link-btn" data-url="https://example.com">❌</button>
+<!-- Popup paiement -->
+<div id="paymentPopup">
+  <div class="popup-content">
+    <h3>Paiement HelepMoney</h3>
+    <p>Payer 100 FCFA à :</p>
+    <ul style="text-align:left;">
+      <li>Kono Emini Michel – MoMo : 651475255</li>
+      <li>Kono Emini Michel – OM : 656050097</li>
+    </ul>
+    <p>Ou code admin :</p>
+    <input type="text" id="adminCode" placeholder="Code admin">
+    <textarea id="transactionMsg" placeholder="Collez le message momo"></textarea>
+    <button id="validateBtn">Valider</button>
+    <button id="cancelPopup">Annuler</button>
+    <p id="paymentError" style="color:red;font-size:12px;"></p>
+  </div>
 </div>
 
 <script>
-  // Tous les boutons ouvrent le lien dans un nouvel onglet
-  const buttons = document.querySelectorAll('.link-btn');
-  buttons.forEach(btn => {
-    btn.addEventListener('click', () => {
-      const url = btn.dataset.url;
-      window.open(url, '_blank'); // ouvre le lien dans une fenêtre externe
-    });
+// Gestion du clic sur le logo pour uploader une image
+logoBox.onclick = () => logoInput.click();
+logoInput.onchange = e => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    logoBox.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
+  };
+  reader.readAsDataURL(file);
+};
+
+// Changement de l'image de fond via input temporaire
+bgBtn.onclick = () => {
+  let i = document.createElement('input');
+  i.type = 'file';
+  i.accept = 'image/*';
+  i.onchange = e => {
+    const r = new FileReader();
+    r.onload = ev => bg.src = ev.target.result;
+    r.readAsDataURL(e.target.files[0]);
+  };
+  i.click();
+};
+
+// Ajouter une ligne dans le tableau du devis
+document.getElementById('addLineBtn').onclick = () => {
+  let table = document.getElementById('devisTable');
+  let row = table.insertRow();
+  row.contentEditable = "true";
+  for (let i = 0; i < 4; i++) row.insertCell();
+  calcTotals(); // Recalcule les totaux après ajout
+};
+
+// Recalcul automatique des totaux toutes les 0.8s
+setInterval(calcTotals,800);
+function calcTotals(){
+  let rows = document.querySelectorAll('#devisTable tr');
+  let total = 0;
+  rows.forEach((r,i)=>{
+    if(i===0) return; // Ignorer l'en-tête
+    let q=parseInt(r.cells[1].innerText)||0; // Quantité
+    let pu=parseInt(r.cells[2].innerText)||0; // Prix unitaire
+    let t=q*pu;
+    r.cells[3].innerText=t; // Total ligne
+    total+=t;
   });
-
-  // Liens dans les posts
-  document.addEventListener('click', function(e) {
-    if (e.target.classList.contains('post-link')) {
-      e.preventDefault();
-      const url = e.target.dataset.url;
-      window.open(url, '_blank'); // ouvre dans un nouvel onglet
-    }
-  });
-</script>
-</script>
-
-<script type="module">
-import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js/+esm'
-
-const supabaseUrl = 'https://nqqlsntgmorujffrntih.supabase.co'
-const supabaseKey = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im5xcWxzbnRnbW9ydWpmZnJudGloIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTk1NzE5OTQsImV4cCI6MjA3NTE0Nzk5NH0.d77RSXyoK-2rFvxAiJB4xgSYpXEHsTKCdF0A3RwzXwY'
-const supabase = createClient(supabaseUrl, supabaseKey)
-
-let currentUser = 'User-' + crypto.randomUUID().slice(0,8)
-let currentFile = null
-let isAdmin = false
-
-const adminCodeInput = document.getElementById('adminCodeInput')
-const postsContainer = document.getElementById('postsContainer')
-const publishArea = document.getElementById('publishArea')
-const adminCodeArea = document.getElementById('adminCodeArea')
-const filePreview = document.getElementById('filePreview')
-
-// Masquer zone publication au départ
-publishArea.style.display = 'none'
-
-// Vérification code admin
-window.checkAdminCode = function() {
-  const code = adminCodeInput.value.trim()
-  if (code === '233233') {
-    isAdmin = true
-    alert('✅ Accès administrateur activé !')
-    adminCodeArea.style.display = 'none'
-    publishArea.style.display = 'flex'
-    loadPosts()
-  } else {
-    alert('❌ Code incorrect, accès refusé')
-  }
+  document.getElementById('totalMateriel').innerText=total;
+  let main=parseInt(document.getElementById('mainOeuvre').innerText)||0;
+  document.getElementById('totalGeneral').innerText=total+main;
 }
 
-// Gestion média
-document.getElementById('btnAddMedia').onclick = () => document.getElementById('mediaInput').click()
-document.getElementById('mediaInput').onchange = e => {
-  currentFile = e.target.files[0]
-  if (!currentFile) return
-  const url = URL.createObjectURL(currentFile)
-  filePreview.innerHTML = currentFile.type.startsWith('image/')
-    ? `<img src="${url}">`
-    : `<video src="${url}" controls></video>`
+// Gestion du popup paiement
+const popup = document.getElementById('paymentPopup');
+downloadBtn.onclick = () => popup.style.display='flex';
+cancelPopup.onclick = () => popup.style.display='none';
+
+const VIP_CODE = "233233"; // Code admin pour bypasser paiement
+let usedIds=[];
+validateBtn.onclick = ()=>{
+  let code=adminCode.value.trim();
+  let msg=transactionMsg.value.trim();
+  paymentError.textContent="";
+
+  // Si code VIP correct, télécharger PDF directement
+  if(code===VIP_CODE){ popup.style.display='none'; return downloadPDF(); }
+
+  // Vérification du message momo via regex
+  const regex=/a\s(.+)\s\((\d+)\)\sId:(\d+)\sle\s([\d-]+\s[\d:]+)/i;
+  const match=msg.match(regex);
+  if(!match){ paymentError.textContent="Format invalide"; return; }
+  const txnId=match[3];
+  if(usedIds.includes(txnId)){ paymentError.textContent="Déjà utilisé"; return; }
+  usedIds.push(txnId);
+
+  popup.style.display='none';
+  downloadPDF();
+};
+
+// Fonction pour générer le PDF du devis
+function downloadPDF(){
+  html2pdf().set({ filename:"Devis_A6.pdf", margin:0, pagebreak:{mode:['legacy']} }).from(document.getElementById('pagesContainer')).save();
 }
-
-// Publier post (admin seulement)
-document.getElementById('btnPublish').onclick = async () => {
-  if (!isAdmin) return alert('Seul l’administrateur peut publier.')
-  const text = document.getElementById('newPostText').value.trim()
-  if (!text && !currentFile) return alert('Rien à publier.')
-
-  let mediaUrl = null
-  if (currentFile) {
-    const fileName = `${Date.now()}_${currentFile.name}`
-    const { error: uploadError } = await supabase.storage.from('media').upload(fileName, currentFile)
-    if (uploadError) return alert('Erreur upload média.')
-    const { data: urlData } = supabase.storage.from('media').getPublicUrl(fileName)
-    mediaUrl = urlData.publicUrl
-  }
-
-  const { error } = await supabase.from('posts').insert([{
-    id: crypto.randomUUID(),
-    user_id: currentUser,
-    text,
-    media_url: mediaUrl,
-    likes: 0,
-    liked_by: [],
-    created_at: new Date().toISOString()
-  }])
-  if (error) return alert('Erreur création post.')
-
-  document.getElementById('newPostText').value = ''
-  filePreview.innerHTML = ''
-  currentFile = null
-  loadPosts()
-}
-
-// Charger posts
-async function loadPosts() {
-  postsContainer.innerHTML = ''
-  const { data: posts } = await supabase.from('posts').select().order('created_at', { ascending: false })
-  posts.forEach(post => {
-    const media = post.media_url ? (post.media_url.endsWith('.mp4')
-      ? `<video src="${post.media_url}" controls></video>`
-      : `<img src="${post.media_url}">`) : ''
-    const card = document.createElement('div')
-    card.className = 'cardFlyer'
-    card.innerHTML = `
-      <b>${post.user_id}</b>: ${formatPostText(post.text)}<br>
-      ${media}
-      <div style="margin-top:6px;">
-        <span class="like-btn" onclick="likePost('${post.id}')">❤️ ${post.likes || 0}</span>
-        ${isAdmin ? `<button onclick="deletePost('${post.id}')">🗑️</button>` : ''}
-      </div>
-      <small>${new Date(post.created_at).toLocaleString()}</small>
-    `
-    postsContainer.appendChild(card)
-  })
-}
-
-// Transformation du texte en HTML cliquable
-function formatPostText(text) {
-  const urlRegex = /(https?:\/\/[^\s]+)/g;
-  return text.replace(urlRegex, '<a href="#" class="post-link" data-url="$1">$1</a>');
-}
-
-// Like
-window.likePost = async (id) => {
-  const { data: post } = await supabase.from('posts').select('likes, liked_by').eq('id', id).single()
-  if (!post) return
-  if (post.liked_by?.includes(currentUser)) return alert('Déjà liké !')
-
-  const newLikes = (post.likes || 0) + 1
-  const newLikedBy = [...(post.liked_by || []), currentUser]
-  await supabase.from('posts').update({ likes: newLikes, liked_by: newLikedBy }).eq('id', id)
-  loadPosts()
-}
-// --- Abonnement en temps réel pour les likes ---
-supabase
-  .channel('public:posts')
-  .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'posts' }, payload => {
-    const updatedPost = payload.new
-    const likeSpan = document.querySelector(`.like-btn[onclick="likePost('${updatedPost.id}')"]`)
-    if (likeSpan) likeSpan.textContent = `❤️ ${updatedPost.likes || 0}`
-  })
-  .subscribe()
-// Supprimer post (admin)
-window.deletePost = async (id) => {
-  if (!isAdmin) return alert('Seul l’administrateur peut supprimer.')
-  await supabase.from('posts').delete().eq('id', id)
-  loadPosts()
-}
-
-loadPosts()
-const toggleBtn = document.getElementById('toggleSubscribers');
-const subscribersList = document.getElementById('subscribersList');
-
-async function loadSubscribers() {
-  const { data: users, error } = await supabase.from('utilisateurs').select('id');
-  if (error) return console.error(error);
-  
-  subscribersList.innerHTML = '';
-  users.forEach(u => {
-    const div = document.createElement('div');
-    div.textContent = u.id;
-    subscribersList.appendChild(div);
-  });
-  
-  toggleBtn.textContent = `Abonnés: ${users.length} ⬇️`;
-}
-
-// Toggle affichage
-toggleBtn.addEventListener('click', () => {
-  subscribersList.style.display = subscribersList.style.display === 'none' ? 'block' : 'none';
-});
-
-// Charger au départ
-loadSubscribers();
 </script>
 </body>
 </html>
