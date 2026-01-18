@@ -1,186 +1,147 @@
 <!DOCTYPE html>
 <html lang="fr">
 <head>
-<meta charset="UTF-8" />
-<title>Devis A6 Professionnel</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+<meta charset="UTF-8">
+<title>Groupe WhatsApp – Facilitateurs</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
 <style>
-/* Styles généraux */
-body { margin: 0; padding: 10px; font-family: Arial, sans-serif; background: #e5eeff; }
-#pagesContainer { max-height: 95vh; overflow-y: auto; }
-.page { width: 420px; min-height: 595px; margin: 15px auto; background: white; border-radius: 10px; padding: 15px; position: relative; overflow: visible; box-shadow: 0 0 10px rgba(0,0,0,0.2); page-break-after: always; }
-#bg { position: absolute; top:0; left:0; width:100%; height:100%; object-fit: cover; z-index:0; opacity: 0.25; }
-.header { position: relative; z-index: 2; display: flex; align-items: center; justify-content: space-between; }
-.header .titles { text-align: left; flex:1; }
-.header h1 { font-size: 20px; margin:0; }
-.header h2 { font-size: 14px; margin:0; color:#444; }
-#logoBox { width: 70px; height: 70px; border: 2px dashed #777; display:flex; justify-content:center; align-items:center; background:white; cursor:pointer; margin-left:10px; border-radius:5px; }
-button { padding: 7px 10px; border:none; border-radius:5px; cursor:pointer; font-size:12px; background:#10b981; color:white; margin:4px; z-index:3; position:relative; }
-.table-container { position: relative; z-index: 2; background: rgba(255,255,255,0.9); border-radius: 8px; padding: 5px; margin-top: 10px; overflow-x:auto; }
-table { width: 100%; border-collapse: collapse; font-size: 12px; }
-th, td { border: 1px solid #ccc; padding: 4px; text-align:center; }
-th { background:#10b981; color:white; }
-.total-box { margin-top:10px; font-size: 13px; z-index:2; position: relative; }
-.signature { position: absolute; bottom: 15px; right: 15px; font-size:10px; color:#333; z-index:2; text-align:right; }
+body {
+    margin: 0;
+    font-family: Arial, sans-serif;
+    background: #121212;
+    color: #fff;
+}
+
+/* Header */
+.header {
+    background: #1f2c34;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.header img {
+    width: 45px;
+    height: 45px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 2px solid #25D366;
+}
+
+.header h2 {
+    font-size: 16px;
+    margin: 0;
+}
+
+.header span {
+    font-size: 12px;
+    color: #aebac1;
+}
+
+/* Bande annonce */
+.marquee {
+    background: #25D366;
+    color: #000;
+    padding: 8px 0;
+    font-weight: bold;
+    overflow: hidden;
+    white-space: nowrap;
+}
+
+.marquee span {
+    display: inline-block;
+    padding-left: 100%;
+    animation: scroll 15s linear infinite;
+}
+
+@keyframes scroll {
+    from { transform: translateX(0); }
+    to { transform: translateX(-100%); }
+}
+
+/* Carte WhatsApp */
+.card {
+    background: #1f2c34;
+    margin: 30px 15px;
+    padding: 15px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 15px;
+}
+
+/* Photo groupe */
+.card img {
+    width: 55px;
+    height: 55px;
+    border-radius: 50%;
+    object-fit: cover;
+}
+
+/* Infos */
+.card-info {
+    flex: 1;
+}
+
+.card-info h3 {
+    margin: 0;
+    font-size: 15px;
+}
+
+.card-info p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: #aebac1;
+}
+
+/* Bouton */
+.card a {
+    background: #25D366;
+    color: #000;
+    padding: 10px 16px;
+    border-radius: 20px;
+    text-decoration: none;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+.card a:hover {
+    opacity: 0.85;
+}
 </style>
 </head>
+
 <body>
-<div id="pagesContainer">
-  <div class="page" id="pageContent">
-    <!-- Image de fond du devis -->
-    <img id="bg" src="" />
 
-    <div class="header">
-      <div class="titles">
-        <!-- Titres éditables -->
-        <h1 contenteditable="true">Nom de l'entreprise</h1>
-        <h2 contenteditable="true">Titre du Devis</h2>
-      </div>
-      <!-- Logo modifiable -->
-      <div id="logoBox">Logo
-        <input type="file" id="logoInput" accept="image/*" style="display:none;">
-      </div>
+<!-- ENTÊTE -->
+<div class="header">
+    <img src="https://raw.githubusercontent.com/mom502615-sketch/image/main/InShot_20260117_164122489.jpg">
+    <div>
+        <h2>Facilitateurs – Groupe Officiel</h2>
+        <span>Discussion communautaire</span>
     </div>
-
-    <!-- Boutons pour ajouter ligne, changer background et télécharger PDF -->
-    <button id="addLineBtn">Ajouter une ligne</button>
-    <button id="downloadBtn">Télécharger PDF</button>
-    <button id="bgBtn">Arrière-plan</button>
-
-    <div class="table-container">
-      <!-- Tableau de devis avec lignes éditables -->
-      <table id="devisTable">
-        <tr>
-          <th>Désignation</th>
-          <th>Qté</th>
-          <th>PU</th>
-          <th>Total</th>
-        </tr>
-        <tr contenteditable="true">
-          <td>Exemple</td>
-          <td>1</td>
-          <td>1000</td>
-          <td>1000</td>
-        </tr>
-      </table>
-    </div>
-
-    <!-- Totaux avec recalcul automatique -->
-    <div class="total-box">
-      <p>Total matériel : <span id="totalMateriel">1000</span> FCFA</p>
-      <p>Main d'œuvre : <span contenteditable="true" id="mainOeuvre">0</span> FCFA</p>
-      <p style="font-weight:bold;">Total général : <span id="totalGeneral">1000</span> FCFA</p>
-    </div>
-
-    <!-- Signature fixe avec informations Lesfacilitateurs -->
-    <div class="signature" contenteditable="true">
-      Créé par Lesfacilitateurs Middleman – WhatsApp : +237651475255
-    </div>
-  </div>
 </div>
 
-<!-- Popup paiement -->
-<div id="paymentPopup">
-  <div class="popup-content">
-    <h3>Paiement HelepMoney</h3>
-    <p>Payer 100 FCFA à :</p>
-    <ul style="text-align:left;">
-      <li>Kono Emini Michel – MoMo : 651475255</li>
-      <li>Kono Emini Michel – OM : 656050097</li>
-    </ul>
-    <p>Ou code admin :</p>
-    <input type="text" id="adminCode" placeholder="Code admin">
-    <textarea id="transactionMsg" placeholder="Collez le message momo"></textarea>
-    <button id="validateBtn">Valider</button>
-    <button id="cancelPopup">Annuler</button>
-    <p id="paymentError" style="color:red;font-size:12px;"></p>
-  </div>
+<!-- BANDE ANNONCE -->
+<div class="marquee">
+    <span>📢 Bienvenue dans le groupe Facilitateurs • Annonces • Opportunités • Discussions • Respect mutuel</span>
 </div>
 
-<script>
-// Gestion du clic sur le logo pour uploader une image
-logoBox.onclick = () => logoInput.click();
-logoInput.onchange = e => {
-  const file = e.target.files[0];
-  if(!file) return;
-  const reader = new FileReader();
-  reader.onload = ev => {
-    logoBox.innerHTML = `<img src="${ev.target.result}" style="width:100%;height:100%;object-fit:cover;">`;
-  };
-  reader.readAsDataURL(file);
-};
+<!-- CARTE GROUPE -->
+<div class="card">
+    <img src="https://raw.githubusercontent.com/mom502615-sketch/image/main/InShot_20260117_164122489.jpg">
 
-// Changement de l'image de fond via input temporaire
-bgBtn.onclick = () => {
-  let i = document.createElement('input');
-  i.type = 'file';
-  i.accept = 'image/*';
-  i.onchange = e => {
-    const r = new FileReader();
-    r.onload = ev => bg.src = ev.target.result;
-    r.readAsDataURL(e.target.files[0]);
-  };
-  i.click();
-};
+    <div class="card-info">
+        <h3>Facilitateurs</h3>
+        <p>Groupe WhatsApp officiel</p>
+    </div>
 
-// Ajouter une ligne dans le tableau du devis
-document.getElementById('addLineBtn').onclick = () => {
-  let table = document.getElementById('devisTable');
-  let row = table.insertRow();
-  row.contentEditable = "true";
-  for (let i = 0; i < 4; i++) row.insertCell();
-  calcTotals(); // Recalcule les totaux après ajout
-};
+    <a href="https://chat.whatsapp.com/FtofkW0XroxJyklaGFsZSv">
+        WhatsApp
+    </a>
+</div>
 
-// Recalcul automatique des totaux toutes les 0.8s
-setInterval(calcTotals,800);
-function calcTotals(){
-  let rows = document.querySelectorAll('#devisTable tr');
-  let total = 0;
-  rows.forEach((r,i)=>{
-    if(i===0) return; // Ignorer l'en-tête
-    let q=parseInt(r.cells[1].innerText)||0; // Quantité
-    let pu=parseInt(r.cells[2].innerText)||0; // Prix unitaire
-    let t=q*pu;
-    r.cells[3].innerText=t; // Total ligne
-    total+=t;
-  });
-  document.getElementById('totalMateriel').innerText=total;
-  let main=parseInt(document.getElementById('mainOeuvre').innerText)||0;
-  document.getElementById('totalGeneral').innerText=total+main;
-}
-
-// Gestion du popup paiement
-const popup = document.getElementById('paymentPopup');
-downloadBtn.onclick = () => popup.style.display='flex';
-cancelPopup.onclick = () => popup.style.display='none';
-
-const VIP_CODE = "233233"; // Code admin pour bypasser paiement
-let usedIds=[];
-validateBtn.onclick = ()=>{
-  let code=adminCode.value.trim();
-  let msg=transactionMsg.value.trim();
-  paymentError.textContent="";
-
-  // Si code VIP correct, télécharger PDF directement
-  if(code===VIP_CODE){ popup.style.display='none'; return downloadPDF(); }
-
-  // Vérification du message momo via regex
-  const regex=/a\s(.+)\s\((\d+)\)\sId:(\d+)\sle\s([\d-]+\s[\d:]+)/i;
-  const match=msg.match(regex);
-  if(!match){ paymentError.textContent="Format invalide"; return; }
-  const txnId=match[3];
-  if(usedIds.includes(txnId)){ paymentError.textContent="Déjà utilisé"; return; }
-  usedIds.push(txnId);
-
-  popup.style.display='none';
-  downloadPDF();
-};
-
-// Fonction pour générer le PDF du devis
-function downloadPDF(){
-  html2pdf().set({ filename:"Devis_A6.pdf", margin:0, pagebreak:{mode:['legacy']} }).from(document.getElementById('pagesContainer')).save();
-}
-</script>
 </body>
 </html>
